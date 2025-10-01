@@ -75,5 +75,6 @@ public class User {
         this.providerId = providerId;
         this.profileImageUrl = profileImageUrl;
         this.userStatus = UserStatus.ACTIVE;
+        this.defaultView = DefaultView.MONTH;
     }
 }
