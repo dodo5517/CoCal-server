@@ -47,6 +47,10 @@ public class User {
     @Column(nullable = false, length = 20)
     private DefaultView defaultView = DefaultView.MONTH;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private Role role = Role.ROLE_USER;
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -72,6 +76,11 @@ public class User {
         GOOGLE
     }
 
+    public enum Role {
+        ROLE_USER,
+        ROLE_ADMIN
+    }
+
     @Builder
     public User(String email, String name, String password, String providerId, String profileImageUrl) {
         this.email = email;
@@ -82,5 +91,6 @@ public class User {
         this.profileImageUrl = profileImageUrl;
         this.userStatus = UserStatus.ACTIVE;
         this.defaultView = DefaultView.MONTH;
+        this.role = Role.ROLE_USER;
     }
 }
