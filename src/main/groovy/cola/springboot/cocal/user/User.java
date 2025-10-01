@@ -42,6 +42,10 @@ public class User {
     @Column(nullable = false, length = 20)
     private UserStatus userStatus = UserStatus.ACTIVE;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private DefaultView defaultView = DefaultView.MONTH;
+
     @CreatedDate
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -54,6 +58,12 @@ public class User {
         ACTIVE,  // 활성 사용자
         BLOCKED,  // 차단한 사용자
         DELETED    // 탈퇴한 사용자
+    }
+
+    public enum DefaultView {
+        MONTH,
+        WEEK,
+        DAY
     }
 
     @Builder
