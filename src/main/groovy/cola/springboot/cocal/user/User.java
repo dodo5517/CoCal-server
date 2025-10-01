@@ -1,5 +1,6 @@
 package cola.springboot.cocal.user;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
@@ -27,6 +28,7 @@ public class User {
     private String name;
 
     @Column(length = 255)
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY) // WRITE_ONLY → JSON에서 읽기는 안 하고, 쓰기만 허용
     private String password;
 
     @Enumerated(EnumType.STRING)
