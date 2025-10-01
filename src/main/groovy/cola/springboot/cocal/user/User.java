@@ -29,8 +29,9 @@ public class User {
     @Column(length = 255)
     private String password;
 
-    @Column(length = 50)
-    private String provider;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 50)
+    private Provider provider = Provider.LOCAL;
 
     @Column(name = "providerId", length = 255)
     private String providerId;
@@ -66,8 +67,13 @@ public class User {
         DAY
     }
 
+    public enum Provider {
+        LOCAL,
+        GOOGLE
+    }
+
     @Builder
-    public User(String email, String name, String password, String provider, String providerId, String profileImageUrl) {
+    public User(String email, String name, String password, String providerId, String profileImageUrl) {
         this.email = email;
         this.name = name;
         this.password = password;
