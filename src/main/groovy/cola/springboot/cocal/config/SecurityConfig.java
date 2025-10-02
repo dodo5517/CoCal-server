@@ -44,6 +44,8 @@ public class SecurityConfig {
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 // 허용할 url
                 .authorizeHttpRequests(auth -> auth
+                        // 모든 OPTIONS 허용 (preflight 통과)
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         // 인증/토큰 관련(ex.로그인, 토큰 재발급, 로그아웃)
                         .requestMatchers("/api/auth/**").permitAll()
                         // 헬스체크/버전
@@ -72,7 +74,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("https://cocal-front.vercel.app")); // 허용할 프론트 주소
+        config.setAllowedOrigins(List.of("https://cocal-front.vercel.app","http://localhost:3000")); // 허용할 프론트 주소
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*")); // Authorization, Content-Type 등
         config.setAllowCredentials(true);       // 쿠키(RefreshToken) 전송 허용
