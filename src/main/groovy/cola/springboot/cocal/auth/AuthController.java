@@ -29,10 +29,10 @@ public class AuthController {
     private static void attachRefreshCookie(HttpServletResponse res, String token) {
         Cookie cookie = new Cookie("refreshToken", token);
         cookie.setHttpOnly(true);
-        cookie.setSecure(true);                 // HTTPS 아닐 때도 일단 허용
+        cookie.setSecure(true);
         cookie.setPath("/api/auth");            // 재발급/로그아웃 경로만 전송
         cookie.setMaxAge(60 * 60 * 24 * 30);   // 30일
-        cookie.setAttribute("SameSite", "Strict");
+        cookie.setAttribute("SameSite", "None"); // 크로스 사이트용으로 None 사용
         res.addCookie(cookie);
     }
 }

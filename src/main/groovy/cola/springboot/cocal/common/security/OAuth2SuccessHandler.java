@@ -50,12 +50,12 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
 
         Cookie cookie = new Cookie("refreshToken", refreshForClient);
         cookie.setHttpOnly(true);
-        cookie.setSecure(true);                 // HTTPS 아닐 때도 일단 허용
+        cookie.setSecure(true);
         cookie.setPath("/api/auth");            // 재발급/로그아웃 경로만 전송
         cookie.setMaxAge(60 * 60 * 24 * 30);   // 30일
-        cookie.setAttribute("SameSite", "Strict"); // CSRF 보호 강화(필요에 따라 Lax)
+        cookie.setAttribute("SameSite", "None");  // 크로스 사이트용으로 None 사용
         res.addCookie(cookie);
 
-        res.sendRedirect("https://cocal-front.vercel.app/");
+        res.sendRedirect("https://cocal-front.vercel.app/dashboard");
     }
 }
