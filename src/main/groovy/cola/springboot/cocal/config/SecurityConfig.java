@@ -2,9 +2,9 @@ package cola.springboot.cocal.config;
 
 import cola.springboot.cocal.common.security.JwtAuthFilter;
 import cola.springboot.cocal.common.security.JwtTokenProvider;
+import cola.springboot.cocal.common.security.OAuth2SuccessHandler;
 import lombok.RequiredArgsConstructor;
 import cola.springboot.cocal.user.CustomOAuth2UserService;
-import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -26,9 +26,8 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final JwtTokenProvider jwt;
-
-
     private final CustomOAuth2UserService customOAuth2UserService; // <- 필드 추가
+    private final OAuth2SuccessHandler oAuth2SuccessHandler;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -56,7 +55,7 @@ public class SecurityConfig {
                 // OAuth2 로그인 (소셜)
                 .oauth2Login(oauth2 -> oauth2
                         .userInfoEndpoint(ep -> ep.userService(customOAuth2UserService))
-                        .defaultSuccessUrl("/", true) // 필요 시 프론트 주소로 변경
+                        .successHandler(oAuth2SuccessHandler) // JWT 발급/쿠키/리다이렉트
                 )
                 // JWT 필터 등록: UsernamePasswordAuthenticationFilter 전에 실행
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);

@@ -17,8 +17,6 @@ public class AuthController {
 
     private final AuthService authService;
 
-    private static final String REFRESH_COOKIE = "refreshToken";
-
     @PostMapping("/login")
     public ResponseEntity<TokenResponse> login(@Valid @RequestBody LoginRequest req,
                                                HttpServletResponse res) {
@@ -29,12 +27,12 @@ public class AuthController {
 
 
     private static void attachRefreshCookie(HttpServletResponse res, String token) {
-        Cookie cookie = new Cookie(REFRESH_COOKIE, token);
+        Cookie cookie = new Cookie("refreshToken", token);
         cookie.setHttpOnly(true);
         cookie.setSecure(true);                 // HTTPS 아닐 때도 일단 허용
         cookie.setPath("/api/auth");            // 재발급/로그아웃 경로만 전송
         cookie.setMaxAge(60 * 60 * 24 * 30);   // 30일
-        cookie.setAttribute("SameSite", "Strict"); // CSRF 보호 강화(필요에 따라 Lax)
+        cookie.setAttribute("SameSite", "Strict");
         res.addCookie(cookie);
     }
 }
