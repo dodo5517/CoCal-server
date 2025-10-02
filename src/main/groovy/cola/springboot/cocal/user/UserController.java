@@ -55,5 +55,11 @@ public class UserController {
         return ResponseEntity.ok(response);
     }
 
+    // 회원 탈퇴
+    @DeleteMapping("/delete")
+    public String deleteUser(Authentication authentication){
+        Long userId = (Long) authentication.getPrincipal();
+        return userService.deleteUserById(userId);
+    }
 
 }
