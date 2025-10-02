@@ -1,0 +1,26 @@
+package cola.springboot.cocal.auth;
+
+import cola.springboot.cocal.user.User;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
+
+@Service
+@RequiredArgsConstructor
+public class RefreshTokenService {
+    // 운영에서 프로퍼티로 빼고 싶다면 app.auth.refresh-ttl-days 등으로 분리
+    private final long refreshTtlDays = 30;
+    private final RefreshTokenRepository refreshTokenRepository;
+
+    public void saveRefreshToken(User user, byte[] refreshHash) {
+        LocalDateTime now = LocalDateTime.now();
+        RefreshToken rt = RefreshToken.builder()
+                .user(user)
+                .tokenHash(refreshHash)
+                .createdAt(now)
+                .expiresAt(now.plusDays(refreshTtlDays))
+                .build();
+        refreshTokenRepository.save(rt);
+    }
+}
