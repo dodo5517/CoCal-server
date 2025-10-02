@@ -74,7 +74,8 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("https://cocal-front.vercel.app","http://localhost:3000")); // 허용할 프론트 주소
+        config.setAllowedOrigins(List.of("https://cocal-front.vercel.app",
+                "http://localhost:3000","http://localhost:3001")); // 허용할 프론트 주소
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*")); // Authorization, Content-Type 등
         config.setAllowCredentials(true);       // 쿠키(RefreshToken) 전송 허용
