@@ -30,13 +30,13 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SecurityConfig {
 
+    private final JwtAuthFilter jwtFilter; // 필드 주입
     private final JwtTokenProvider jwt;
-    private final CustomOAuth2UserService customOAuth2UserService; // <- 필드 추가
+    private final CustomOAuth2UserService customOAuth2UserService; // 필드 추가
     private final OAuth2SuccessHandler oAuth2SuccessHandler;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        var jwtFilter = new JwtAuthFilter(jwt);
 
         http
                 .csrf(csrf -> csrf.disable())
