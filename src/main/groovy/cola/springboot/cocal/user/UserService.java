@@ -41,5 +41,25 @@ public class UserService {
         // DB 저장
         return userRepository.save(user); // password는 DB에 저장, 응답에는 숨김(JsonProperty) 처리
     }
+
+    @Transactional
+    public void changePasswordById(Long userId, String currentPassword, String newPassword) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+
+        if (user.getProvider() != User.Provider.LOCAL) {
+            throw new RuntimeException("소셜 로그인 사용자는 비밀번호를 변경할 수 없습니다.");
+        }
+
+        if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+            throw new RuntimeException("현재 비밀번호가 일치하지 않습니다.");
+        }
+
+        user.setPassword(passwordEncoder.encode(newPassword));
+        user.setUpdatedAt(LocalDateTime.now());
+        userRepository.save(user);
+    }
+
+
 }
 
