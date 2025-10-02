@@ -7,9 +7,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.security.Key;
+import java.security.MessageDigest;
+import java.security.SecureRandom;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
+
+import org.springframework.data.util.Pair;
 
 @Component
 @RequiredArgsConstructor
@@ -48,6 +52,34 @@ public class JwtTokenProvider {
                 .addClaims(claims)                              // 커스텀 클레임
                 .signWith(signingKey(), SignatureAlgorithm.HS256)
                 .compact();
+    }
+
+    // RefreshToken 생성
+    public Pair<String, byte[]> createRefreshToken() {
+        byte[] refreshRaw = randomBytes(32);
+        String refreshForClient = base64Url(refreshRaw);
+        byte[] refreshHash = sha256(refreshRaw);
+        return Pair.of(refreshForClient, refreshHash);
+    }
+    // RefreshToken 생성 내부 유틸
+    private static byte[] randomBytes(int len) {
+        byte[] b = new byte[len];
+        new SecureRandom().nextBytes(b);
+        return b;
+    }
+    private static String base64Url(byte[] raw) {
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(raw);
+    }
+    private static byte[] base64UrlDecode(String s) {
+        return Base64.getUrlDecoder().decode(s);
+    }
+    private static byte[] sha256(byte[] input) {
+        try {
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            return md.digest(input);
+        } catch (Exception e) {
+            throw new IllegalStateException("SHA-256 미지원", e);
+        }
     }
 
     // 토큰 파싱(검증포함). 유효하지 않으면 JwtException 예외발생
