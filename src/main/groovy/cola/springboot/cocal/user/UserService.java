@@ -60,6 +60,15 @@ public class UserService {
         userRepository.save(user);
     }
 
+    @Transactional
+    public User changeName(Long userId, String newName) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+
+        user.setName(newName);
+        user.setUpdatedAt(LocalDateTime.now());
+        return userRepository.save(user);
+    }
 
 }
 
