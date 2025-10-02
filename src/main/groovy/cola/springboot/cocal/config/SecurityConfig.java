@@ -3,6 +3,8 @@ package cola.springboot.cocal.config;
 import cola.springboot.cocal.common.security.JwtAuthFilter;
 import cola.springboot.cocal.common.security.JwtTokenProvider;
 import lombok.RequiredArgsConstructor;
+import cola.springboot.cocal.user.CustomOAuth2UserService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -25,6 +27,9 @@ public class SecurityConfig {
 
     private final JwtTokenProvider jwt;
 
+
+    private final CustomOAuth2UserService customOAuth2UserService; // <- 필드 추가
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         var jwtFilter = new JwtAuthFilter(jwt);
@@ -45,6 +50,16 @@ public class SecurityConfig {
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(restEntryPoint()))
                 .httpBasic(httpBasic -> {}) // 테스트용 기본 인증(필요 없으면 제거)
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+
+                .csrf(csrf -> csrf.disable())
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/**", "/api/users/**").permitAll()
+                        .anyRequest().authenticated()
+                )
+                .oauth2Login(oauth2 -> oauth2
+                        .userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
+                        .defaultSuccessUrl("/") // 로그인 성공 후 리다이렉트
+                );
 
         return http.build();
     }
