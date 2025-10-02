@@ -6,6 +6,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 @RestController
@@ -35,6 +36,23 @@ public class UserController {
 
         // 메시지를 Map으로 만들어서 반환
         return ResponseEntity.ok(Collections.singletonMap("message", "비밀번호가 변경되었습니다."));
+    }
+
+    // name 수정
+    @PutMapping("/edit-name")
+    public ResponseEntity<Map<String, Object>> changeName(@RequestBody Map<String, String> body,
+                                                          Authentication authentication) {
+        Long userId = Long.parseLong(authentication.getName());
+        String newName = body.get("name");
+
+        User updated = userService.changeName(userId, newName);
+
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("id", updated.getId());
+        response.put("name", updated.getName());
+        response.put("updatedAt", updated.getUpdatedAt());
+
+        return ResponseEntity.ok(response);
     }
 
 
