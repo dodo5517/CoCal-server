@@ -1,5 +1,7 @@
 package cola.springboot.cocal.config;
 
+import cola.springboot.cocal.user.CustomOAuth2UserService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.Customizer;
@@ -11,20 +13,27 @@ import org.springframework.security.web.SecurityFilterChain;
 
 @Configuration
 @EnableWebSecurity
+@RequiredArgsConstructor
 public class SecurityConfig {
+
+    private final CustomOAuth2UserService customOAuth2UserService; // <- 필드 추가
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            .csrf(csrf -> csrf.disable()) // CSRF 비활성화
-            .authorizeHttpRequests(auth -> auth
-                    .requestMatchers("/api/users").permitAll() // 회원가입
-                    .anyRequest().authenticated()
-            )
-            .httpBasic(Customizer.withDefaults()); // 기본 인증 사용(테스트용)
+                .csrf(csrf -> csrf.disable())
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/**", "/api/users/**").permitAll()
+                        .anyRequest().authenticated()
+                )
+                .oauth2Login(oauth2 -> oauth2
+                        .userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
+                        .defaultSuccessUrl("/") // 로그인 성공 후 리다이렉트
+                );
+
         return http.build();
     }
 
-    // PasswordEncoder Bean 추가
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
