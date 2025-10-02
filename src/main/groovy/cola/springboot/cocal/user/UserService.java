@@ -1,6 +1,9 @@
 package cola.springboot.cocal.user;
 
+import cola.springboot.cocal.auth.RefreshTokenRepository;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -12,7 +15,9 @@ import java.time.LocalDateTime;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder; // Bean 주입
+    private static final Logger log = LoggerFactory.getLogger(UserService.class);
 
     @Transactional
     public User signUp(User user) {
@@ -70,5 +75,18 @@ public class UserService {
         return userRepository.save(user);
     }
 
+    // 회원 탈퇴
+    @Transactional
+    public String deleteUserById(Long id) {
+        User user = userRepository.findById(id)
+                .orElseThrow(()-> new IllegalArgumentException("해당 ID의 유저가 없습니다."));
+        // 토큰 삭제 후 유저 삭제
+        refreshTokenRepository.deleteByUserId(id);
+        userRepository.delete(user);
+
+        // 삭제 완료 메시지
+        log.info("Deleted:" + user.getEmail());
+        return "탈퇴되었습니다.";
+    }
 }
 
