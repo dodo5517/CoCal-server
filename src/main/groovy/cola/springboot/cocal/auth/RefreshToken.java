@@ -1,5 +1,6 @@
 package cola.springboot.cocal.auth;
 
+import cola.springboot.cocal.user.User;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -10,7 +11,7 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 @Entity
-@Table(name = "auth_refresh_tokens",
+@Table(name = "refresh_tokens",
         indexes = {
                 @Index(name = "idx_user_active", columnList = "user_id, expires_at")
         },
@@ -24,19 +25,19 @@ public class RefreshToken {
     private Long id;
 
     // users(id) FK
-    @Column(name = "user_id", nullable = false)
-    private Long userId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false, foreignKey = @ForeignKey(name = "fk_refresh_token_user"))
+    private User user;
 
     // SHA-256(token) 32바이트
-    @Column(name = "token_hash", nullable = false, columnDefinition = "BINARY(32)")
+    @Column(name = "token_hash", nullable = false)
     private byte[] tokenHash;
 
     @Column(name = "expires_at", nullable = false)
     private LocalDateTime expiresAt;
 
-    @Column(name = "created_at", nullable = false,
-            columnDefinition = "DATETIME(6) DEFAULT CURRENT_TIMESTAMP(6)")
-    private LocalDateTime createdAt;
+    @Column(name = "created_at", nullable = false)
+    private LocalDateTime createdAt = LocalDateTime.now();
 
     @Column(name = "revoked_at")
     private LocalDateTime revokedAt;
