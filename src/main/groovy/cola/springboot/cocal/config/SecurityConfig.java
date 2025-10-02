@@ -38,28 +38,28 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .cors(Customizer.withDefaults())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                // 허용할 url
                 .authorizeHttpRequests(auth -> auth
-                        // 인증/토큰 관련 공개 엔드포인트
+                        // 인증/토큰 관련(ex.로그인, 토큰 재발급, 로그아웃)
                         .requestMatchers("/api/auth/**").permitAll()
                         // 헬스체크/버전
                         .requestMatchers(HttpMethod.GET, "/health", "/version").permitAll()
                         // 회원가입(예: POST /api/users)
                         .requestMatchers(HttpMethod.POST, "/api/users").permitAll()
+                        // OAuth2 로그인 진입/콜백 URL (소셜 로그인 필수 공개)
+                        .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll()
+                        // 그 외는 인증 필요.
                         .anyRequest().authenticated()
                 )
+                // 인증 실패 응답
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(restEntryPoint()))
-                .httpBasic(httpBasic -> {}) // 테스트용 기본 인증(필요 없으면 제거)
-                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
-
-                .csrf(csrf -> csrf.disable())
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/**", "/api/users/**").permitAll()
-                        .anyRequest().authenticated()
-                )
+                // OAuth2 로그인 (소셜)
                 .oauth2Login(oauth2 -> oauth2
-                        .userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
-                        .defaultSuccessUrl("/") // 로그인 성공 후 리다이렉트
-                );
+                        .userInfoEndpoint(ep -> ep.userService(customOAuth2UserService))
+                        .defaultSuccessUrl("/", true) // 필요 시 프론트 주소로 변경
+                )
+                // JWT 필터 등록: UsernamePasswordAuthenticationFilter 전에 실행
+                .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
