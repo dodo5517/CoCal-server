@@ -3,10 +3,11 @@ package cola.springboot.cocal.common.security;
 import cola.springboot.cocal.auth.RefreshTokenService;
 import cola.springboot.cocal.user.User;
 import cola.springboot.cocal.user.UserRepository;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.util.Pair;
 import org.springframework.security.core.Authentication;
@@ -17,6 +18,8 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 
+import static cola.springboot.cocal.common.util.CookieUtils.addRefreshCookie;
+
 @Configuration
 @RequiredArgsConstructor
 public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
@@ -24,6 +27,7 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
     private final JwtTokenProvider jwtProvider;
     private final RefreshTokenService refreshTokenService;
     private final UserRepository userRepository;
+    private static final Logger log = LoggerFactory.getLogger(OAuth2SuccessHandler.class);
 
     @Override
     public void onAuthenticationSuccess(
@@ -46,18 +50,13 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
         Pair<String, byte[]> e = jwtProvider.createRefreshToken();
         String refreshForClient = e.getFirst();
         byte[] refreshHash = e.getSecond();
+//        log.debug("refreshForClient: {}", refreshForClient);
+//        log.debug("refreshHash: {}", refreshHash);
 
         // RefreshToken db에 저장
         refreshTokenService.saveRefreshToken(user,refreshHash);
 
-
-        Cookie cookie = new Cookie("refreshToken", refreshForClient);
-        cookie.setHttpOnly(true);
-        cookie.setSecure(true);
-        cookie.setPath("/api/auth");            // 해당 경로로만 전송
-        cookie.setMaxAge(60 * 60 * 24 * 30);   // 30일
-        cookie.setAttribute("SameSite", "None");  // 크로스 사이트용으로 None 사용
-        res.addCookie(cookie);
+        addRefreshCookie(res,refreshForClient);
 
         // AccessToken은 JSON Body로 응답
         res.setStatus(HttpServletResponse.SC_OK);
@@ -72,6 +71,5 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
 
         res.getWriter().write(json);
         res.getWriter().flush();
-
     }
 }
