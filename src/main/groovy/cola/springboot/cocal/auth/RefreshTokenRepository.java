@@ -15,13 +15,13 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long
     @Modifying
     @Transactional
     @Query(value = """
-        INSERT INTO refresh_tokens (user_id, device_info, token_hash, created_at, expires_at)
-        VALUES (:userId, :deviceInfo, :tokenHash, now(), :expiresAt)
-        ON CONFLICT (user_id, device_info) DO UPDATE SET
-            token_hash = EXCLUDED.token_hash
-            -- expires_at은 고정 만료 정책이라 업데이트하지 않음
-            -- revoked_at도 건드리지 않음 (revive 금지)
-        """, nativeQuery = true)
+        INSERT INTO refresh_tokens (user_id, device_info, token_hash, created_at, updated_at, expires_at)
+        VALUES (:userId, :deviceInfo, :tokenHash, now(), now(), :expiresAt)
+        ON CONFLICT (user_id, device_info) WHERE revoked_at IS NULL
+        DO UPDATE SET
+            token_hash = EXCLUDED.token_hash,
+            updated_at = now()
+    """, nativeQuery = true)
     int upsert(@Param("userId") Long userId,
                @Param("deviceInfo") String deviceInfo,
                @Param("tokenHash") byte[] tokenHash,
