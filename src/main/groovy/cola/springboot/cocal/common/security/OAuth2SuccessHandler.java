@@ -39,6 +39,8 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
         // AccessToken 발급
         Collection<String> roleStrings = List.of(user.getRole().name());
         String access = jwtProvider.createAccessToken(user.getId(), user.getEmail(), roleStrings);
+        // expiresIn
+        long accessExpiresIn = jwtProvider.getAccessTokenTtlSeconds(); // 예: 20분 → 1200초
 
         // RefreshToken 발급
         Pair<String, byte[]> e = jwtProvider.createRefreshToken();
@@ -48,14 +50,28 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
         // RefreshToken db에 저장
         refreshTokenService.saveRefreshToken(user,refreshHash);
 
+
         Cookie cookie = new Cookie("refreshToken", refreshForClient);
         cookie.setHttpOnly(true);
         cookie.setSecure(true);
-        cookie.setPath("/api/auth");            // 재발급/로그아웃 경로만 전송
+        cookie.setPath("/api/auth");            // 해당 경로로만 전송
         cookie.setMaxAge(60 * 60 * 24 * 30);   // 30일
         cookie.setAttribute("SameSite", "None");  // 크로스 사이트용으로 None 사용
         res.addCookie(cookie);
 
-        res.sendRedirect("https://cocal-front.vercel.app/dashboard");
+        // AccessToken은 JSON Body로 응답
+        res.setStatus(HttpServletResponse.SC_OK);
+        res.setContentType("application/json;charset=UTF-8");
+
+        String json = """
+              {
+                "accessToken": "%s",
+                "expiresIn": %d
+              }
+              """.formatted(access, accessExpiresIn);
+
+        res.getWriter().write(json);
+        res.getWriter().flush();
+
     }
 }
