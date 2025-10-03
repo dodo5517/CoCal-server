@@ -26,4 +26,12 @@ public class RefreshTokenService {
     public void revokeRefreshToken(Long userId, String deviceInfo) {
         refreshTokenRepository.logoutDevice(userId, deviceInfo);
     }
+
+    // 해당 유저의 모든 기기에서 로그아웃
+    public String logoutAll(Long userId) {
+        int count = refreshTokenRepository.logoutAllDevices(userId);
+        return count > 0
+                ? "모든 기기에서 로그아웃되었습니다."
+                : "이미 모든 기기에서 로그아웃 상태입니다.";
+    }
 }
