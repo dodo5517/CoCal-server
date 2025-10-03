@@ -19,6 +19,7 @@ public class UserService {
     private final PasswordEncoder passwordEncoder; // Bean 주입
     private static final Logger log = LoggerFactory.getLogger(UserService.class);
 
+    // 회원가입
     @Transactional
     public User signUp(User user) {
         // 이메일 중복 체크
@@ -47,6 +48,7 @@ public class UserService {
         return userRepository.save(user); // password는 DB에 저장, 응답에는 숨김(JsonProperty) 처리
     }
 
+    // 비밀번호 수정
     @Transactional
     public void changePasswordById(Long userId, String currentPassword, String newPassword) {
         User user = userRepository.findById(userId)
@@ -65,6 +67,7 @@ public class UserService {
         userRepository.save(user);
     }
 
+    // 이름 수정
     @Transactional
     public User changeName(Long userId, String newName) {
         User user = userRepository.findById(userId)
@@ -87,6 +90,16 @@ public class UserService {
         // 삭제 완료 메시지
         log.info("Deleted:" + user.getEmail());
         return "탈퇴되었습니다.";
+    }
+
+    // default view 수정
+    @Transactional
+    public void updateDefaultView(Long userId, User.DefaultView newView) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+        user.setDefaultView(newView);
+        user.setUpdatedAt(LocalDateTime.now());
+        userRepository.save(user);
     }
 }
 
