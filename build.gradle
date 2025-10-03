@@ -55,6 +55,9 @@ dependencies {
 
     // OAuth2 Client
     implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
+
+    // UserAgent
+    implementation 'eu.bitwalker:UserAgentUtils:1.21'
 }
 
 tasks.named('test') {
