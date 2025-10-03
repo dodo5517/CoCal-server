@@ -1,6 +1,7 @@
 package cola.springboot.cocal.common.security;
 
 import cola.springboot.cocal.auth.RefreshTokenService;
+import cola.springboot.cocal.common.util.DeviceInfoParser;
 import cola.springboot.cocal.user.User;
 import cola.springboot.cocal.user.UserRepository;
 import jakarta.servlet.http.HttpServletRequest;
@@ -39,7 +40,14 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
         // 이메일 존재 유무 확인 및 유저 정보 조회
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 이메일"));
-        
+
+        // Header에서 User-Agent 가져옴
+        String userAgent = req.getHeader("User-Agent");
+
+        // 디바이스 정보 파싱
+        String deviceInfo = DeviceInfoParser.extractDeviceInfo(userAgent);
+        log.debug("로그인 시도한 deviceInfo: {}", deviceInfo);
+
         // AccessToken 발급
         Collection<String> roleStrings = List.of(user.getRole().name());
         String access = jwtProvider.createAccessToken(user.getId(), user.getEmail(), roleStrings);
@@ -50,11 +58,11 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
         Pair<String, byte[]> e = jwtProvider.createRefreshToken();
         String refreshForClient = e.getFirst();
         byte[] refreshHash = e.getSecond();
-//        log.debug("refreshForClient: {}", refreshForClient);
-//        log.debug("refreshHash: {}", refreshHash);
+        log.debug("refreshForClient: {}", refreshForClient);
+        log.debug("refreshHash: {}", refreshHash);
 
         // RefreshToken db에 저장
-        refreshTokenService.saveRefreshToken(user,refreshHash);
+        refreshTokenService.saveRefreshToken(user, deviceInfo, refreshHash);
 
         addRefreshCookie(res,refreshForClient);
 
