@@ -13,14 +13,13 @@ public class RefreshTokenService {
     private final long refreshTtlDays = 30;
     private final RefreshTokenRepository refreshTokenRepository;
 
-    public void saveRefreshToken(User user, byte[] refreshHash) {
-        LocalDateTime now = LocalDateTime.now();
-        RefreshToken rt = RefreshToken.builder()
-                .user(user)
-                .tokenHash(refreshHash)
-                .createdAt(now)
-                .expiresAt(now.plusDays(refreshTtlDays))
-                .build();
-        refreshTokenRepository.save(rt);
+    public void saveRefreshToken(User user, String deviceInfo, byte[] refreshHash) {
+        LocalDateTime expiresAt = LocalDateTime.now().plusDays(refreshTtlDays);
+        refreshTokenRepository.upsert(
+                user.getId(),
+                deviceInfo,
+                refreshHash,
+                expiresAt
+        );
     }
 }
