@@ -60,10 +60,18 @@ public class AuthController {
         // Header에서 User-Agent 가져옴
         String userAgent = request.getHeader("User-Agent");
         // refreshToken revoke
-        authService.revokedRefreshToken(userId, userAgent);
+        authService.logoutDevice(userId, userAgent);
 
         // RefreshToken 쿠키 삭제
         CookieUtils.deleteRefreshCookie(res);
         return ResponseEntity.ok(Collections.singletonMap("message", "로그아웃 되었습니다."));
+    }
+
+    // 해당 유저의 모든 기기에서 로그아웃
+    @PostMapping("/all-logout")
+    public ResponseEntity<Map<String, String>> allLogout(HttpServletRequest request, HttpServletResponse res,
+                            Authentication authentication) {
+        Long userId = Long.parseLong(authentication.getName());
+        return ResponseEntity.ok(Collections.singletonMap("messgae", refreshTokenService.logoutAll(userId)));
     }
 }
