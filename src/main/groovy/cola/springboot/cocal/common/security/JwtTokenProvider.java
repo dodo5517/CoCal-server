@@ -70,16 +70,24 @@ public class JwtTokenProvider {
     private static String base64Url(byte[] raw) {
         return Base64.getUrlEncoder().withoutPadding().encodeToString(raw);
     }
-    private static byte[] base64UrlDecode(String s) {
-        return Base64.getUrlDecoder().decode(s);
+    /** RefreshToken 해시 (DB 조회용) */
+    public byte[] hashRefreshToken(String refreshTokenForClient) {
+        byte[] decoded = base64UrlDecode(refreshTokenForClient);
+        return sha256(decoded);
     }
-    private static byte[] sha256(byte[] input) {
+
+    /** 기존 private static 메서드 재사용 */
+    private byte[] sha256(byte[] input) {
         try {
             MessageDigest md = MessageDigest.getInstance("SHA-256");
             return md.digest(input);
         } catch (Exception e) {
             throw new IllegalStateException("SHA-256 미지원", e);
         }
+    }
+
+    private byte[] base64UrlDecode(String s) {
+        return Base64.getUrlDecoder().decode(s);
     }
 
     // 토큰 파싱(검증포함). 유효하지 않으면 JwtException 예외발생
