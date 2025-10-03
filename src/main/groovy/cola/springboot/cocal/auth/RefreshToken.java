@@ -16,7 +16,8 @@ import java.time.LocalDateTime;
                 @Index(name = "idx_user_active", columnList = "user_id, expires_at")
         },
         uniqueConstraints = {
-                @UniqueConstraint(name = "uk_token_hash", columnNames = "token_hash")
+                @UniqueConstraint(name = "uk_token_hash", columnNames = "token_hash"),
+                @UniqueConstraint(columnNames = {"user_id", "device_info"})
         })
 public class RefreshToken {
 
@@ -28,6 +29,9 @@ public class RefreshToken {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false, foreignKey = @ForeignKey(name = "fk_refresh_token_user"))
     private User user;
+
+    @Column(name = "device_info", length = 255)
+    private String deviceInfo; // 로그인한 장치 ex. PC, 모바일, 태블릿
 
     // SHA-256(token) 32바이트
     @Column(name = "token_hash", nullable = false)
