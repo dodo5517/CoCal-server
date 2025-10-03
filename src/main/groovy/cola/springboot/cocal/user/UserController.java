@@ -62,4 +62,27 @@ public class UserController {
         return userService.deleteUserById(userId);
     }
 
+    // defaultView 수정
+    @PutMapping("/view")
+    public ResponseEntity<Map<String, String>> updateDefaultView(
+            @RequestBody Map<String, String> body,
+            Authentication authentication){
+
+        Long userId = Long.parseLong(authentication.getName());
+        String viewStr = body.get("defaultView");
+
+        User.DefaultView view;
+        try {
+            view = User.DefaultView.valueOf(viewStr.toUpperCase());
+        } catch (IllegalArgumentException e) {
+            throw new RuntimeException("잘못된 뷰 입니다. (DAY, WEEK, MONTH 중 선택)");
+        }
+
+        userService.updateDefaultView(userId, view);
+
+        return ResponseEntity.ok(
+                Map.of("message", "가본 뷰가 " + view + "으로 변경되었습니다.")
+        );
+    }
+
 }
