@@ -64,4 +64,13 @@ public class AuthService {
 
         return new TokenPair(access, refreshForClient);
     }
+
+    // refreshToken revoke
+    @Transactional
+    public void revokedRefreshToken(Long userId, String userAgent) {
+        // 디바이스 정보 파싱
+        String deviceInfo = DeviceInfoParser.extractDeviceInfo(userAgent);
+        // db에서 refreshToken revoke
+        refreshTokenService.revokeRefreshToken(userId,deviceInfo);
+    }
 }
