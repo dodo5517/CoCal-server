@@ -65,6 +65,9 @@ dependencies {
 
     // UserAgent
     implementation 'eu.bitwalker:UserAgentUtils:1.21'
+
+    // aws s3
+    implementation 'software.amazon.awssdk:s3:2.25.19'
 }
 
 tasks.named('test') {

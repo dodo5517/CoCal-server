@@ -1,6 +1,7 @@
 package cola.springboot.cocal.user;
 
 import cola.springboot.cocal.auth.RefreshTokenRepository;
+import cola.springboot.cocal.s3.S3Service;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,6 +20,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
     private final PasswordEncoder passwordEncoder; // Bean 주입
+    private final S3Service s3Service;
     private static final Logger log = LoggerFactory.getLogger(UserService.class);
 
     // 회원가입
@@ -79,6 +81,44 @@ public class UserService {
         user.setUpdatedAt(LocalDateTime.now());
         return userRepository.save(user);
     }
+
+    // 유저 프로필 이미지 추가/수정
+    @Transactional
+    public void updateProfileImage(Long id, String imageUrl) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 유저입니다."));
+        user.setProfileImageUrl(imageUrl);
+        userRepository.save(user);
+    }
+
+    @Transactional
+    public String getProfileImageUrl(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 유저입니다."));
+        return user.getProfileImageUrl();
+    }
+
+    // 유저 프로필 이미지 삭제
+    @Transactional
+    public void deleteProfileImage(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 유저입니다."));
+
+        String url = user.getProfileImageUrl();
+        // DB 비움
+        user.setProfileImageUrl(null);
+
+        // S3일 때만 조용히 삭제
+        String key = s3Service.keyFromUrl(url);
+        if (key != null) {
+            try { s3Service.deleteFile(key); } catch (Exception ignore) {}
+        }
+
+    }
+    private String extractKeyFromUrl(String imageUrl) {
+        return imageUrl.substring(imageUrl.lastIndexOf("profiles/"));
+    }
+
 
     // 회원 탈퇴
     @Transactional
