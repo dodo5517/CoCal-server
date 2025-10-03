@@ -1,6 +1,7 @@
 package cola.springboot.cocal.auth;
 
 import cola.springboot.cocal.common.security.JwtTokenProvider;
+import cola.springboot.cocal.common.util.CookieUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -41,7 +42,7 @@ public class AuthController {
 
     // 로그아웃
     @PostMapping("/logout")
-    public ResponseEntity<Map<String, String>> logout(HttpServletRequest request) {
+    public ResponseEntity<Map<String, String>> logout(HttpServletRequest request, HttpServletResponse res) {
         String authHeader = request.getHeader("Authorization");
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
@@ -50,8 +51,10 @@ public class AuthController {
         }
 
         String token = authHeader.substring(7); // "Bearer " 제거
+        // 해당 AccessToken을 Blacklist에 추가
         tokenBlacklistService.addToBlacklist(token);
-
+        // RefreshToken 쿠키 삭제
+        CookieUtils.deleteRefreshCookie(res);
         return ResponseEntity.ok(Collections.singletonMap("message", "로그아웃 되었습니다."));
     }
 }

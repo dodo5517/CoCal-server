@@ -17,4 +17,14 @@ public class CookieUtils {
         cookie.setAttribute("SameSite", "None"); // 크로스 사이트용
         res.addCookie(cookie);
     }
+
+    public static void deleteRefreshCookie(HttpServletResponse res) {
+        Cookie cookie = new Cookie(REFRESH_COOKIE_NAME, null);
+        cookie.setHttpOnly(true);
+        cookie.setSecure(true);
+        cookie.setPath("/api/auth");
+        cookie.setMaxAge(0); // 즉시 만료
+        cookie.setAttribute("SameSite", "None");
+        res.addCookie(cookie);
+    }
 }
