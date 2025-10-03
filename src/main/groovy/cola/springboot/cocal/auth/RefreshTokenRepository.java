@@ -10,7 +10,6 @@ import java.time.LocalDateTime;
 public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long> {
     void deleteByUserId(Long userId);
 
-
     // RefreshToken 레코드 저장을 위한 insert or update
     @Modifying
     @Transactional
@@ -26,4 +25,21 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long
                @Param("deviceInfo") String deviceInfo,
                @Param("tokenHash") byte[] tokenHash,
                @Param("expiresAt") LocalDateTime expiresAt);
+
+    // 해당 기기에서 토큰 폐기
+    @Modifying
+    @Transactional
+    @Query(value = """
+    UPDATE refresh_tokens
+    SET revoked_at = now(),
+        expires_at = now(),
+        updated_at = now()
+    WHERE user_id = :userId
+      AND device_info = :deviceInfo
+      AND revoked_at IS NULL
+      AND expires_at > now()
+""", nativeQuery = true)
+    int logoutDevice(@Param("userId") Long userId,
+                     @Param("deviceInfo") String deviceInfo);
+
 }

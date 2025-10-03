@@ -22,4 +22,8 @@ public class RefreshTokenService {
                 expiresAt
         );
     }
+
+    public void revokeRefreshToken(Long userId, String deviceInfo) {
+        refreshTokenRepository.logoutDevice(userId, deviceInfo);
+    }
 }
