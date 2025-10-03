@@ -85,4 +85,11 @@ public class UserController {
         );
     }
 
+    // 회원 조회(me)
+    @GetMapping("/me")
+    public ResponseEntity<Map<String, Object>> getMe(Authentication authentication) {
+        Long userId = Long.parseLong(authentication.getName());
+        Map<String, Object> response = userService.getMe(userId); // Service 호출
+        return ResponseEntity.ok(response);
+    }
 }
