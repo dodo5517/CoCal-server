@@ -115,6 +115,10 @@ public class JwtTokenProvider {
             return false; // 위조/형식오류 등은 만료와 구분
         }
     }
+    // accessToken TTL(초)
+    public long getAccessTokenTtlSeconds() {
+        return props.getAccessTtlMinutes() * 60L;
+    }
 
 
     // Claims 꺼내기(검증 포함)

@@ -1,5 +1,6 @@
 package cola.springboot.cocal.auth;
 
+import cola.springboot.cocal.common.security.JwtTokenProvider;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -21,13 +22,15 @@ public class AuthController {
 
     private final AuthService authService;
     private final TokenBlacklistService tokenBlacklistService;
+    private final JwtTokenProvider jwtProvider;
 
     @PostMapping("/login")
     public ResponseEntity<TokenResponse> login(@Valid @RequestBody LoginRequest req,
                                                HttpServletResponse res) {
         var pair = authService.login(req.email(), req.password());
         attachRefreshCookie(res, pair.refreshToken());
-        return ResponseEntity.ok(new TokenResponse(pair.accessToken()));
+        long accessExpiresIn = jwtProvider.getAccessTokenTtlSeconds(); // 예: 20분 → 1200초
+        return ResponseEntity.ok(new TokenResponse(pair.accessToken(),accessExpiresIn));
     }
 
     // 로그아웃
@@ -50,7 +53,7 @@ public class AuthController {
         Cookie cookie = new Cookie("refreshToken", token);
         cookie.setHttpOnly(true);
         cookie.setSecure(true);
-        cookie.setPath("/api/auth");            // 재발급/로그아웃 경로만 전송
+        cookie.setPath("/api/auth");            // 해당 경로로만 전송
         cookie.setMaxAge(60 * 60 * 24 * 30);   // 30일
         cookie.setAttribute("SameSite", "None"); // 크로스 사이트용으로 None 사용
         res.addCookie(cookie);
