@@ -9,6 +9,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -100,6 +102,24 @@ public class UserService {
         user.setDefaultView(newView);
         user.setUpdatedAt(LocalDateTime.now());
         userRepository.save(user);
+    }
+
+    // me(api 서비스 레이어까지 분리)
+    @Transactional(readOnly = true)
+    public Map<String, Object> getMe(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+
+        // 필요한 필드만 hash map 으로 담아서 반환
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("id", user.getId());
+        response.put("email", user.getEmail());
+        response.put("name", user.getName());
+        response.put("provider", user.getProvider().name());
+        response.put("profileImageUrl", user.getProfileImageUrl()); // null 허용
+        response.put("userStatus", user.getUserStatus().name());
+
+        return response;
     }
 }
 
