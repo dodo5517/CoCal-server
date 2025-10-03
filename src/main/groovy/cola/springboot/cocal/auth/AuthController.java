@@ -7,6 +7,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -25,6 +26,7 @@ public class AuthController {
     private final AuthService authService;
     private final TokenBlacklistService tokenBlacklistService;
     private final JwtTokenProvider jwtProvider;
+    private final RefreshTokenService refreshTokenService;
 
     @PostMapping("/login")
     public ResponseEntity<TokenResponse> login(@Valid @RequestBody LoginRequest req,
@@ -40,19 +42,26 @@ public class AuthController {
         return ResponseEntity.ok(new TokenResponse(pair.accessToken(),accessExpiresIn));
     }
 
-    // 로그아웃
+    // 해당 기기에서 로그아웃
     @PostMapping("/logout")
-    public ResponseEntity<Map<String, String>> logout(HttpServletRequest request, HttpServletResponse res) {
+    public ResponseEntity<Map<String, String>> logout(HttpServletRequest request, HttpServletResponse res,
+                                                      Authentication authentication) {
         String authHeader = request.getHeader("Authorization");
+        Long userId = Long.parseLong(authentication.getName());
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             return ResponseEntity.badRequest()
                     .body(Collections.singletonMap("message", "Authorization 헤더가 올바르지 않습니다."));
         }
-
         String token = authHeader.substring(7); // "Bearer " 제거
         // 해당 AccessToken을 Blacklist에 추가
         tokenBlacklistService.addToBlacklist(token);
+
+        // Header에서 User-Agent 가져옴
+        String userAgent = request.getHeader("User-Agent");
+        // refreshToken revoke
+        authService.revokedRefreshToken(userId, userAgent);
+
         // RefreshToken 쿠키 삭제
         CookieUtils.deleteRefreshCookie(res);
         return ResponseEntity.ok(Collections.singletonMap("message", "로그아웃 되었습니다."));
