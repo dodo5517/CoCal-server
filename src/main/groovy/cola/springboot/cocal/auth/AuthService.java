@@ -14,6 +14,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
+import java.time.LocalDateTime;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
 
@@ -23,6 +25,7 @@ public class AuthService {
 
     private final UserRepository userRepository;
     private final RefreshTokenService refreshTokenService;
+    private final RefreshTokenRepository refreshTokenRepository;
     private final JwtTokenProvider jwt;
     private final PasswordEncoder passwordEncoder;
     private static final Logger log = LoggerFactory.getLogger(AuthService.class);
@@ -72,5 +75,29 @@ public class AuthService {
         String deviceInfo = DeviceInfoParser.extractDeviceInfo(userAgent);
         // db에서 refreshToken revoke
         refreshTokenService.revokeRefreshToken(userId,deviceInfo);
+    }
+
+    // 토큰 재발급
+    @Transactional
+    public TokenPair reissueAccessToken(String refreshTokenForClient) {
+        // 1. RefreshToken 해시 생성
+        byte[] refreshHash = jwt.hashRefreshToken(refreshTokenForClient);
+
+        // 2. DB에서 활성화된 refreshToken 조회
+        RefreshToken tokenEntity = refreshTokenRepository.findByTokenHashAndRevokedAtIsNull(refreshHash)
+                .orElseThrow(() -> new IllegalArgumentException("유효하지 않은 RefreshToken"));
+
+        // 3. 만료 여부 확인
+        if (tokenEntity.getExpiresAt().isBefore(LocalDateTime.now())) {
+            throw new IllegalArgumentException("RefreshToken이 만료되었습니다");
+        }
+
+        // 4. 새 AccessToken 발급
+        User user = tokenEntity.getUser();
+        Collection<String> roles = List.of(user.getRole().name());
+        String newAccessToken = jwt.createAccessToken(user.getId(), user.getEmail(), roles);
+
+        // 5. 기존 RefreshToken 그대로 반환
+        return new TokenPair(newAccessToken, refreshTokenForClient);
     }
 }
