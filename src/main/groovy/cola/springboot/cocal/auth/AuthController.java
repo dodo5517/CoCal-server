@@ -6,12 +6,10 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Collections;
 import java.util.Map;
@@ -73,5 +71,29 @@ public class AuthController {
                             Authentication authentication) {
         Long userId = Long.parseLong(authentication.getName());
         return ResponseEntity.ok(Collections.singletonMap("messgae", refreshTokenService.logoutAll(userId)));
+    }
+
+    // accessToken 재발급
+    @PostMapping("/reissue")
+    public ResponseEntity<TokenResponse> reissue(
+            @CookieValue(value = "refreshToken", required = false) String refreshToken) {
+
+        if (refreshToken == null) {
+            return ResponseEntity.badRequest()
+                    .body(new TokenResponse("RefreshToken이 없습니다.", 0));
+        }
+
+        try {
+            // AccessToken 재발급
+            AuthService.TokenPair tokens = authService.reissueAccessToken(refreshToken);
+
+            // TTL 계산
+            long accessTtl = jwtProvider.getAccessTokenTtlSeconds();
+            return ResponseEntity.ok(new TokenResponse(tokens.accessToken(), accessTtl));
+
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new TokenResponse(e.getMessage(), 0));
+        }
     }
 }
