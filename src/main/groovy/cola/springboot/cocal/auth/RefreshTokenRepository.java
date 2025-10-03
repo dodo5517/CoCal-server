@@ -6,6 +6,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Optional;
 
 public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long> {
     void deleteByUserId(Long userId);
@@ -55,4 +56,7 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long
       AND expires_at > now()
     """, nativeQuery = true)
     int logoutAllDevices(@Param("userId") Long userId);
+
+    // 활성(refreshToken 만료X, revoked_at IS NULL) refreshToken 조회
+    Optional<RefreshToken> findByTokenHashAndRevokedAtIsNull(byte[] tokenHash);
 }
