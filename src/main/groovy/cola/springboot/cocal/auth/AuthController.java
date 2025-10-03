@@ -27,8 +27,13 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<TokenResponse> login(@Valid @RequestBody LoginRequest req,
+                                               HttpServletRequest httpRequest,
                                                HttpServletResponse res) {
-        var pair = authService.login(req.email(), req.password());
+        // Header에서 User-Agent 가져옴
+        String userAgent = httpRequest.getHeader("User-Agent");
+
+        var pair = authService.login(req.email(), req.password(), userAgent);
+        // 쿠키에 RefreshToken 저장
         addRefreshCookie(res, pair.refreshToken());
         long accessExpiresIn = jwtProvider.getAccessTokenTtlSeconds(); // 예: 20분 → 1200초
         return ResponseEntity.ok(new TokenResponse(pair.accessToken(),accessExpiresIn));
