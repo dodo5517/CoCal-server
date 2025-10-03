@@ -65,9 +65,9 @@ public class AuthService {
         return new TokenPair(access, refreshForClient);
     }
 
-    // refreshToken revoke
+    // 해당 기기에서 로그아웃(device 파싱)
     @Transactional
-    public void revokedRefreshToken(Long userId, String userAgent) {
+    public void logoutDevice(Long userId, String userAgent) {
         // 디바이스 정보 파싱
         String deviceInfo = DeviceInfoParser.extractDeviceInfo(userAgent);
         // db에서 refreshToken revoke

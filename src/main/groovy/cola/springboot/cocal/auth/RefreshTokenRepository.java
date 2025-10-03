@@ -38,8 +38,21 @@ public interface RefreshTokenRepository extends JpaRepository<RefreshToken, Long
       AND device_info = :deviceInfo
       AND revoked_at IS NULL
       AND expires_at > now()
-""", nativeQuery = true)
+    """, nativeQuery = true)
     int logoutDevice(@Param("userId") Long userId,
                      @Param("deviceInfo") String deviceInfo);
 
+    // 해당 유저의 모든 기기 토큰 폐기
+    @Modifying
+    @Transactional
+    @Query(value = """
+    UPDATE refresh_tokens
+    SET revoked_at = now(),
+        expires_at = now(),
+        updated_at = now()
+    WHERE user_id = :userId
+      AND revoked_at IS NULL
+      AND expires_at > now()
+    """, nativeQuery = true)
+    int logoutAllDevices(@Param("userId") Long userId);
 }
