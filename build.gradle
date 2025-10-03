@@ -2,6 +2,8 @@ plugins {
     id 'groovy'
     id 'org.springframework.boot' version '3.5.6'
     id 'io.spring.dependency-management' version '1.1.7'
+    // flyway plugin
+    id "org.flywaydb.flyway" version "9.22.3"
 }
 
 group = 'cola.springboot'
@@ -30,6 +32,11 @@ dependencies {
 
     //postgresql
     implementation 'org.postgresql:postgresql'
+
+    //flyway
+    implementation("org.flywaydb:flyway-core")
+    // flyway PostgreSQL
+    implementation("org.flywaydb:flyway-database-postgresql")
 
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.apache.groovy:groovy'
