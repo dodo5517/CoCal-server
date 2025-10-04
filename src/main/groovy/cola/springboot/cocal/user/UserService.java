@@ -1,10 +1,12 @@
 package cola.springboot.cocal.user;
 
 import cola.springboot.cocal.auth.RefreshTokenRepository;
+import cola.springboot.cocal.common.exception.BusinessException;
 import cola.springboot.cocal.s3.S3Service;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,20 +30,28 @@ public class UserService {
     public User signUp(User user) {
         // 이메일 중복 체크
         if (userRepository.findByEmail(user.getEmail()).isPresent()) {
-            throw new RuntimeException("이미 존재하는 이메일입니다.");
+            throw new BusinessException(
+                    HttpStatus.BAD_REQUEST,
+                    "EMAIL_DUPLICATE",
+                    "이미 존재하는 이메일입니다."
+            );
         }
 
         // 비밀번호 null 체크
         if (user.getPassword() == null || user.getPassword().isBlank()) {
-            throw new RuntimeException("비밀번호를 입력해주세요.");
+            throw new BusinessException(
+                    HttpStatus.BAD_REQUEST,
+                    "PASSWORD_REQUIRED",
+                    "비밀번호를 입력해주세요."
+            );
         }
 
         // 원본 비밀번호 로그
-        System.out.println("원본 비밀번호: " + user.getPassword());
+        log.debug("원본 비밀번호: {}", user.getPassword());
 
         // BCrypt 해시
         String hashed = passwordEncoder.encode(user.getPassword());
-        System.out.println("BCrypt 해시: " + hashed);
+        log.debug("BCrypt 해시: {}", hashed);
         user.setPassword(hashed);
 
         // 생성일, 수정일
@@ -56,14 +66,26 @@ public class UserService {
     @Transactional
     public void changePasswordById(Long userId, String currentPassword, String newPassword) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+                .orElseThrow(() -> new BusinessException(
+                        HttpStatus.NOT_FOUND,
+                        "USER_NOT_FOUND",
+                        "사용자를 찾을 수 없습니다."
+                ));
 
         if (user.getProvider() != User.Provider.LOCAL) {
-            throw new RuntimeException("소셜 로그인 사용자는 비밀번호를 변경할 수 없습니다.");
+            throw new BusinessException(
+                    HttpStatus.BAD_REQUEST,
+                    "SOCIAL_USER_PASSWORD_CHANGE_NOT_ALLOWED",
+                    "소셜 로그인 사용자는 비밀번호를 변경할 수 없습니다."
+            );
         }
 
         if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
-            throw new RuntimeException("현재 비밀번호가 일치하지 않습니다.");
+            throw new BusinessException(
+                    HttpStatus.BAD_REQUEST,
+                    "PASSWORD_MISMATCH",
+                    "현재 비밀번호가 일치하지 않습니다."
+            );
         }
 
         user.setPassword(passwordEncoder.encode(newPassword));
@@ -75,7 +97,11 @@ public class UserService {
     @Transactional
     public User changeName(Long userId, String newName) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+                .orElseThrow(() -> new BusinessException(
+                        HttpStatus.NOT_FOUND,
+                        "USER_NOT_FOUND",
+                        "사용자를 찾을 수 없습니다."
+                ));
 
         user.setName(newName);
         user.setUpdatedAt(LocalDateTime.now());
@@ -84,9 +110,13 @@ public class UserService {
 
     // 유저 프로필 이미지 추가/수정
     @Transactional
-    public void updateProfileImage(Long id, String imageUrl) {
-        User user = userRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 유저입니다."));
+    public void updateProfileImage(Long userId, String imageUrl) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(
+                        HttpStatus.NOT_FOUND,
+                        "USER_NOT_FOUND",
+                        "사용자를 찾을 수 없습니다."
+                ));
         user.setProfileImageUrl(imageUrl);
         userRepository.save(user);
     }
@@ -94,7 +124,11 @@ public class UserService {
     @Transactional
     public String getProfileImageUrl(Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 유저입니다."));
+                .orElseThrow(() -> new BusinessException(
+                        HttpStatus.NOT_FOUND,
+                        "USER_NOT_FOUND",
+                        "사용자를 찾을 수 없습니다."
+                ));
         return user.getProfileImageUrl();
     }
 
@@ -102,7 +136,11 @@ public class UserService {
     @Transactional
     public void deleteProfileImage(Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 유저입니다."));
+                .orElseThrow(() -> new BusinessException(
+                        HttpStatus.NOT_FOUND,
+                        "USER_NOT_FOUND",
+                        "사용자를 찾을 수 없습니다."
+                ));
 
         String url = user.getProfileImageUrl();
         // DB 비움
@@ -122,23 +160,30 @@ public class UserService {
 
     // 회원 탈퇴
     @Transactional
-    public String deleteUserById(Long id) {
-        User user = userRepository.findById(id)
-                .orElseThrow(()-> new IllegalArgumentException("해당 ID의 유저가 없습니다."));
+    public void deleteUserById(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(
+                        HttpStatus.NOT_FOUND,
+                        "USER_NOT_FOUND",
+                        "사용자를 찾을 수 없습니다."
+                ));
         // 토큰 삭제 후 유저 삭제
-        refreshTokenRepository.deleteByUserId(id);
+        refreshTokenRepository.deleteByUserId(userId);
         userRepository.delete(user);
 
         // 삭제 완료 메시지
         log.info("Deleted:" + user.getEmail());
-        return "탈퇴되었습니다.";
     }
 
     // default view 수정
     @Transactional
     public void updateDefaultView(Long userId, User.DefaultView newView) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+                .orElseThrow(() -> new BusinessException(
+                        HttpStatus.NOT_FOUND,
+                        "USER_NOT_FOUND",
+                        "사용자를 찾을 수 없습니다."
+                ));
         user.setDefaultView(newView);
         user.setUpdatedAt(LocalDateTime.now());
         userRepository.save(user);
@@ -148,7 +193,11 @@ public class UserService {
     @Transactional(readOnly = true)
     public Map<String, Object> getMe(Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다."));
+                .orElseThrow(() -> new BusinessException(
+                        HttpStatus.NOT_FOUND,
+                        "USER_NOT_FOUND",
+                        "사용자를 찾을 수 없습니다."
+                ));
 
         // 필요한 필드만 hash map 으로 담아서 반환
         Map<String, Object> response = new LinkedHashMap<>();
