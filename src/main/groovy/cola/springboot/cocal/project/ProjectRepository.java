@@ -1,4 +1,6 @@
 package cola.springboot.cocal.project;
 
-public interface ProjectRepository {
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface ProjectRepository extends JpaRepository<Project, Long> {
 }
