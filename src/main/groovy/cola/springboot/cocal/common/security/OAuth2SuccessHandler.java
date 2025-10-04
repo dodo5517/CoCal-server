@@ -1,9 +1,12 @@
 package cola.springboot.cocal.common.security;
 
 import cola.springboot.cocal.auth.RefreshTokenService;
+import cola.springboot.cocal.common.api.ApiResponse;
+import cola.springboot.cocal.common.exception.BusinessException;
 import cola.springboot.cocal.common.util.DeviceInfoParser;
 import cola.springboot.cocal.user.User;
 import cola.springboot.cocal.user.UserRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -11,6 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.util.Pair;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
@@ -28,7 +32,10 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
     private final JwtTokenProvider jwtProvider;
     private final RefreshTokenService refreshTokenService;
     private final UserRepository userRepository;
+    private final ObjectMapper objectMapper = new ObjectMapper();
     private static final Logger log = LoggerFactory.getLogger(OAuth2SuccessHandler.class);
+
+    public record AuthData(String accessToken, long expiresIn) {}
 
     @Override
     public void onAuthenticationSuccess(
@@ -39,7 +46,11 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
 
         // 이메일 존재 유무 확인 및 유저 정보 조회
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 이메일"));
+                .orElseThrow(() -> new BusinessException(
+                        HttpStatus.NOT_FOUND,
+                        "EMAIL_NOT_FOUND",
+                        "존재하지 않는 이메일입니다."
+                ));
 
         // Header에서 User-Agent 가져옴
         String userAgent = req.getHeader("User-Agent");
@@ -63,21 +74,16 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
 
         // RefreshToken db에 저장
         refreshTokenService.saveRefreshToken(user, deviceInfo, refreshHash);
-
         addRefreshCookie(res,refreshForClient);
 
         // AccessToken은 JSON Body로 응답
         res.setStatus(HttpServletResponse.SC_OK);
         res.setContentType("application/json;charset=UTF-8");
 
-        String json = """
-              {
-                "accessToken": "%s",
-                "expiresIn": %d
-              }
-              """.formatted(access, accessExpiresIn);
+        AuthData data = new AuthData(access, accessExpiresIn);
 
-        res.getWriter().write(json);
-        res.getWriter().flush();
+        var successResponse = ApiResponse.ok(data, req.getRequestURI());
+
+        objectMapper.writeValue(res.getWriter(), successResponse);
     }
 }

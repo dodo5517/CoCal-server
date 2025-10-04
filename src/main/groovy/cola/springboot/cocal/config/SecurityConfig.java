@@ -1,13 +1,17 @@
 package cola.springboot.cocal.config;
 
+import cola.springboot.cocal.common.api.ApiResponse;
+import cola.springboot.cocal.common.exception.BusinessException;
 import cola.springboot.cocal.common.security.JwtAuthFilter;
 import cola.springboot.cocal.common.security.JwtTokenProvider;
 import cola.springboot.cocal.common.security.OAuth2SuccessHandler;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import cola.springboot.cocal.user.CustomOAuth2UserService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -25,6 +29,8 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import java.util.List;
 
+import static cola.springboot.cocal.common.exception.ErrorMappers.toApiError;
+
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
@@ -34,6 +40,7 @@ public class SecurityConfig {
     private final JwtTokenProvider jwt;
     private final CustomOAuth2UserService customOAuth2UserService; // 필드 추가
     private final OAuth2SuccessHandler oAuth2SuccessHandler;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -94,9 +101,18 @@ public class SecurityConfig {
     @Bean
     public AuthenticationEntryPoint restEntryPoint() {
         return (request, response, authException) -> {
-            response.setStatus(401);
+            BusinessException ex = new BusinessException(
+                    HttpStatus.UNAUTHORIZED,
+                    "AUTH_UNAUTHORIZED",
+                    "인증되지 않은 요청입니다."
+            );
+            String path = request.getRequestURI();
+            // BusinessException → ApiError 변환
+            var failResponse = ApiResponse.fail(toApiError(ex), path);
+
+            response.setStatus(HttpStatus.UNAUTHORIZED.value());
             response.setContentType("application/json;charset=UTF-8");
-            response.getWriter().write("{\"message\":\"Unauthorized\"}");
+            response.getWriter().write(objectMapper.writeValueAsString(failResponse));
         };
     }
 

@@ -1,12 +1,16 @@
 package cola.springboot.cocal.common.security;
 
 import cola.springboot.cocal.auth.TokenBlacklistService;
+import cola.springboot.cocal.common.api.ApiResponse;
+import cola.springboot.cocal.common.exception.BusinessException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AbstractAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -15,6 +19,8 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 import java.io.IOException;
 import java.util.List;
+
+import static cola.springboot.cocal.common.exception.ErrorMappers.toApiError;
 
 @Component
 @RequiredArgsConstructor
@@ -36,9 +42,15 @@ public class JwtAuthFilter extends OncePerRequestFilter {
                     SecurityContextHolder.clearContext();
                     res.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                     res.setContentType("application/json;charset=UTF-8");
-                    try (var writer = res.getWriter()) {
-                        writer.write("{\"message\":\"로그아웃된 토큰입니다.\"}");
-                    }
+                    BusinessException ex = new BusinessException(
+                            HttpStatus.UNAUTHORIZED,
+                            "TOKEN_BLACKLISTED",
+                            "로그아웃된 토큰입니다."
+                    );
+                    String path = req.getRequestURI();
+                    // BusinessException → ApiError 변환
+                    var failResponse = ApiResponse.fail(toApiError(ex), path);
+                    new ObjectMapper().writeValue(res.getWriter(), failResponse);
                     return; // 여기서 필터 중단
                 }
 
