@@ -59,10 +59,13 @@ public class Invite {
     private LocalDateTime expiresAt;
 
     @Column(nullable = false, updatable = false)
+    private LocalDateTime updatedAt = LocalDateTime.now();
+
+    @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
     // 상태 enum
     public enum InviteStatus {
-        PENDING, ACCEPTED, DECLINED, EXPIRED
+        PENDING, ACCEPTED, DECLINED, EXPIRED, CANCEL
     }
 }
