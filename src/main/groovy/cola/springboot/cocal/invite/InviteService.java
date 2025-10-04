@@ -85,10 +85,11 @@ public class InviteService {
                     Invite saved = saveNewInvite(project, email, inviter, req.getExpireDays());
                     return InviteResponse.of(saved);
                 }
-                case EXPIRED, DECLINED -> {
+                case CANCEL, EXPIRED, DECLINED -> {
                     Invite saved = saveNewInvite(project, email, inviter, req.getExpireDays());
                     return InviteResponse.of(saved);
                 }
+                case ACCEPTED -> throw new IllegalStateException("이미 수락된 초대입니다.");
                 default -> {
                     throw new IllegalStateException("처리할 수 없는 초대 상태입니다: " + targetInv.getStatus());
                 }
