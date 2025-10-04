@@ -1,10 +1,12 @@
 package cola.springboot.cocal.project;
 
+import cola.springboot.cocal.common.exception.BusinessException;
 import cola.springboot.cocal.user.User;
 import cola.springboot.cocal.user.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,7 +22,11 @@ public class ProjectService {
     @Transactional
     public ProjectResponseDto createProject(Long ownerId, ProjectRequestDto request) {
         User owner = userRepository.findById(ownerId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                .orElseThrow(() -> new BusinessException(
+                        HttpStatus.NOT_FOUND,
+                        "USER_NOT_FOUND",
+                        "사용자를 찾을 수 없습니다."
+                ));
 
         Project project = new Project();
         project.setName(request.getName());
