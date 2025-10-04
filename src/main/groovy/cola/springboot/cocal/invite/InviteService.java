@@ -1,5 +1,6 @@
 package cola.springboot.cocal.invite;
 
+import cola.springboot.cocal.common.exception.BusinessException;
 import cola.springboot.cocal.invite.Invite.InviteStatus;
 import cola.springboot.cocal.invite.dto.InviteCreateRequest;
 import cola.springboot.cocal.invite.dto.InviteResponse;
@@ -9,6 +10,7 @@ import cola.springboot.cocal.user.User;
 import cola.springboot.cocal.user.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.security.SecureRandom;
@@ -46,7 +48,11 @@ public class InviteService {
     @Transactional
     public InviteResponse createInvite(Long inviterUserId, InviteCreateRequest req) {
         Project project = projectRepository.findById(req.getProjectId())
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 프로젝트입니다."));
+                .orElseThrow(() -> new BusinessException(
+                        HttpStatus.NOT_FOUND,
+                        "PROJECT_NOT_FOUND",
+                        "존재하지 않는 프로젝트입니다."
+                ));
 
         // 초대할 사람
         String email = req.getEmail().toLowerCase().trim();
@@ -58,7 +64,11 @@ public class InviteService {
         // DECLINED 3회 이상 선체크 후 바로 차단
         long declinedCount = inviteRepository.countDeclinedInvites(project.getId(), email);
         if (declinedCount >= 3) {
-            throw new IllegalStateException("해당 사용자는 이미 3회 이상 초대를 거절했습니다. 더 이상 초대할 수 없습니다.");
+            throw new BusinessException(
+                    HttpStatus.FORBIDDEN,
+                    "INVITE_BLOCKED",
+                    "해당 사용자는 이미 3회 이상 초대를 거절했습니다. 더 이상 초대할 수 없습니다."
+            );
         }
 
         // 이미 멤버인지 선체크(있다면 초대 불필요) 하는 부분 팀원 테이블 만들면 추가.
@@ -89,10 +99,16 @@ public class InviteService {
                     Invite saved = saveNewInvite(project, email, inviter, req.getExpireDays());
                     return InviteResponse.of(saved);
                 }
-                case ACCEPTED -> throw new IllegalStateException("이미 수락된 초대입니다.");
-                default -> {
-                    throw new IllegalStateException("처리할 수 없는 초대 상태입니다: " + targetInv.getStatus());
-                }
+                case ACCEPTED -> throw new BusinessException(
+                        HttpStatus.CONFLICT,
+                        "INVITE_ALREADY_ACCEPTED",
+                        "이미 수락된 초대입니다."
+                );
+                default -> throw new BusinessException(
+                        HttpStatus.BAD_REQUEST,
+                        "INVALID_INVITE_STATUS",
+                        "처리할 수 없는 초대 상태입니다: " + targetInv.getStatus()
+                );
             }
         }
         // 기존 초대가 없는 경우 새 초대 생성

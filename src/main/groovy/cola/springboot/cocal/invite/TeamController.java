@@ -1,7 +1,9 @@
 package cola.springboot.cocal.invite;
 
+import cola.springboot.cocal.common.api.ApiResponse;
 import cola.springboot.cocal.invite.dto.InviteCreateRequest;
 import cola.springboot.cocal.invite.dto.InviteResponse;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -22,9 +24,11 @@ public class TeamController {
 
     // 초대 생성
     @PostMapping("/invite")
-    public ResponseEntity<InviteResponse> create(@Valid @RequestBody InviteCreateRequest req,
-                                                 Authentication auth) {
+    public ResponseEntity<ApiResponse<InviteResponse>> create(@Valid @RequestBody InviteCreateRequest req,
+                                                              HttpServletRequest httpReq,
+                                                              Authentication auth) {
         Long inviterUserId = Long.parseLong(auth.getName());
-        return ResponseEntity.ok(inviteService.createInvite(inviterUserId, req));
+        InviteResponse data = inviteService.createInvite(inviterUserId, req);
+        return ResponseEntity.ok(ApiResponse.ok(data, httpReq.getRequestURI()));
     }
 }
