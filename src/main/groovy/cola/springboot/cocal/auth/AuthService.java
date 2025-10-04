@@ -1,6 +1,7 @@
 package cola.springboot.cocal.auth;
 
 
+import cola.springboot.cocal.common.exception.BusinessException;
 import cola.springboot.cocal.common.security.JwtTokenProvider;
 import cola.springboot.cocal.common.util.DeviceInfoParser;
 import cola.springboot.cocal.user.User;
@@ -9,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.util.Pair;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -42,11 +44,20 @@ public class AuthService {
     public TokenPair login(String email, String rawPassword, String userAgent) {
         // 이메일 존재 유무 확인
         User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 이메일"));
+                .orElseThrow(() -> new BusinessException(
+                        HttpStatus.NOT_FOUND,
+                        "EMAIL_NOT_FOUND",
+                        "이메일을 찾을 수 없습니다."
+                ));
+
 
         // 비밀번호 확인
         if (user.getPassword() == null || !passwordEncoder.matches(rawPassword, user.getPassword())) {
-            throw new IllegalArgumentException("비밀번호 불일치");
+            throw new BusinessException(
+                    HttpStatus.UNAUTHORIZED,
+                    "PASSWORD_MISMATCH",
+                    "비밀번호가 일치하지 않습니다."
+            );
         }
 
         // 디바이스 정보 파싱
@@ -85,11 +96,19 @@ public class AuthService {
 
         // 2. DB에서 활성화된 refreshToken 조회
         RefreshToken tokenEntity = refreshTokenRepository.findByTokenHashAndRevokedAtIsNull(refreshHash)
-                .orElseThrow(() -> new IllegalArgumentException("유효하지 않은 RefreshToken"));
+                .orElseThrow(() -> new BusinessException(
+                        HttpStatus.UNAUTHORIZED,
+                        "INVALID_REFRESH_TOKEN",
+                        "유효하지 않은 RefreshToken입니다."
+                ));
 
         // 3. 만료 여부 확인
         if (tokenEntity.getExpiresAt().isBefore(LocalDateTime.now())) {
-            throw new IllegalArgumentException("RefreshToken이 만료되었습니다");
+            throw new BusinessException(
+                    HttpStatus.UNAUTHORIZED,
+                    "EXPIRED_REFRESH_TOKEN",
+                    "RefreshToken이 만료되었습니다."
+            );
         }
 
         // 4. 새 AccessToken 발급
