@@ -75,7 +75,7 @@ public class InviteService {
                 case PENDING -> {
                     // 만료되지 않았으면 기존 초대 재사용
                     if (targetInv.getExpiresAt() == null || targetInv.getExpiresAt().isAfter(LocalDateTime.now())) {
-                        return InviteResponse.of(targetInv, true);
+                        return InviteResponse.of(targetInv);
                     }
                     // 만료된 요청은 EXPIRED 설정
                     targetInv.setStatus(InviteStatus.EXPIRED);
@@ -83,11 +83,11 @@ public class InviteService {
 
                     // 만료된 경우는 EXPIRED로 간주하여 새로 생성
                     Invite saved = saveNewInvite(project, email, inviter, req.getExpireDays());
-                    return InviteResponse.of(saved, true);
+                    return InviteResponse.of(saved);
                 }
                 case EXPIRED, DECLINED -> {
                     Invite saved = saveNewInvite(project, email, inviter, req.getExpireDays());
-                    return InviteResponse.of(saved, true);
+                    return InviteResponse.of(saved);
                 }
                 default -> {
                     throw new IllegalStateException("처리할 수 없는 초대 상태입니다: " + targetInv.getStatus());
@@ -96,7 +96,7 @@ public class InviteService {
         }
         // 기존 초대가 없는 경우 새 초대 생성
         Invite saved = saveNewInvite(project, email, inviter, req.getExpireDays());
-        return InviteResponse.of(saved, true);
+        return InviteResponse.of(saved);
     }
     private Invite saveNewInvite(Project project, String email, User inviter, Integer expireDays) {
         Invite newInv = Invite.builder()
@@ -106,6 +106,7 @@ public class InviteService {
                 .status(InviteStatus.PENDING)
                 .token(newToken())
                 .expiresAt(calcExpireAt(expireDays))
+                .updatedAt(LocalDateTime.now())
                 .createdAt(LocalDateTime.now())
                 .build();
         return inviteRepository.save(newInv);
