@@ -11,8 +11,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 
 
 @RestController
@@ -52,5 +53,18 @@ public class TeamController {
 
         Page<InviteListResponse> data = inviteQueryService.listMyInvites(userId, req);
         return ResponseEntity.ok(ApiResponse.ok(data, httpReq.getRequestURI()));
+    }
+
+    // 초대 수락
+    @PostMapping("/invite/{inviteId}/accept")
+    public ResponseEntity<ApiResponse<Map<String, String>>> acceptInvite(
+            @PathVariable Long inviteId,
+            Authentication auth,
+            HttpServletRequest req
+    ) {
+        Long userId = Long.parseLong(auth.getName());
+        inviteService.acceptInvite(inviteId, userId);
+        Map<String, String> data = Map.of("message", "초대를 수락했습니다.");
+        return ResponseEntity.ok(ApiResponse.ok(data, req.getRequestURI()));
     }
 }
