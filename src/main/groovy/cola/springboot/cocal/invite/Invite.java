@@ -39,7 +39,7 @@ public class Invite {
             foreignKey = @ForeignKey(name = "fk_inv_project"))
     private Project project;
 
-    @Column(nullable = false, length = 255)
+    @Column(length = 255)
     private String email;
 
     // 초대한 사용자
@@ -51,6 +51,10 @@ public class Invite {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private InviteStatus status = InviteStatus.PENDING;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private InviteType type = InviteType.EMAIL;
 
     @Column(nullable = false, length = 64, unique = true)
     private String token;
@@ -67,4 +71,5 @@ public class Invite {
     public enum InviteStatus {
         PENDING, ACCEPTED, DECLINED, EXPIRED, CANCEL
     }
+    public enum InviteType { EMAIL, OPEN_LINK }
 }
