@@ -67,4 +67,17 @@ public class TeamController {
         Map<String, String> data = Map.of("message", "초대를 수락했습니다.");
         return ResponseEntity.ok(ApiResponse.ok(data, req.getRequestURI()));
     }
+
+    // 초대 거절
+    @PostMapping("/invite/{inviteId}/decline")
+    public ResponseEntity<ApiResponse<Map<String, String>>> declineInvite(
+            @PathVariable Long inviteId,
+            Authentication auth,
+            HttpServletRequest req
+    ) {
+        Long userId = Long.parseLong(auth.getName());
+        inviteService.declineInvite(inviteId, userId);
+        Map<String, String> data = Map.of("message", "초대를 거절했습니다.");
+        return ResponseEntity.ok(ApiResponse.ok(data, req.getRequestURI()));
+    }
 }
