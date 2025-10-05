@@ -57,6 +57,15 @@ public class InviteService {
                         "존재하지 않는 프로젝트입니다."
                 ));
 
+        // 프로젝트 소유자(팀장)인지 확인
+        if (!project.getOwner().getId().equals(inviterUserId)) {
+            throw new BusinessException(
+                    HttpStatus.FORBIDDEN,
+                    "NOT_PROJECT_OWNER",
+                    "해당 프로젝트의 소유자만 초대를 생성할 수 있습니다."
+            );
+        }
+
         // 초대할 사람
         String email = req.getEmail().toLowerCase().trim();
 
