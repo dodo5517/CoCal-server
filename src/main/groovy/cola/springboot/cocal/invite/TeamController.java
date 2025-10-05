@@ -9,10 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 
 @RestController
@@ -23,12 +20,13 @@ public class TeamController {
     private final InviteService inviteService;
 
     // 초대 생성
-    @PostMapping("/invite")
-    public ResponseEntity<ApiResponse<InviteResponse>> create(@Valid @RequestBody InviteCreateRequest req,
+    @PostMapping("/{projectId}/invite")
+    public ResponseEntity<ApiResponse<InviteResponse>> create(@PathVariable Long projectId,
+                                                              @Valid @RequestBody InviteCreateRequest req,
                                                               HttpServletRequest httpReq,
                                                               Authentication auth) {
         Long inviterUserId = Long.parseLong(auth.getName());
-        InviteResponse data = inviteService.createInvite(inviterUserId, req);
+        InviteResponse data = inviteService.createInvite(inviterUserId, projectId, req);
         return ResponseEntity.ok(ApiResponse.ok(data, httpReq.getRequestURI()));
     }
 }

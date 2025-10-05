@@ -7,9 +7,6 @@ import lombok.Setter;
 
 @Getter @Setter
 public class InviteCreateRequest {
-    @NotNull
-    private Long projectId;
-
     // 초대할 사람
     @NotNull @Email
     private String email;
