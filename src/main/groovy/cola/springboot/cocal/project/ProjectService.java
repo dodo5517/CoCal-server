@@ -86,4 +86,61 @@ public class ProjectService {
                         .build());
     }
 
+    // 프로젝트 수정
+    @Transactional
+    public ProjectResponseDto updateProject(Long projectId, ProjectRequestDto request, Long userId) {
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new BusinessException(
+                        HttpStatus.NOT_FOUND,
+                        "PROJECT_NOT_FOUND",
+                        "존재하지 않는 프로젝트입니다."
+                ));
+
+        // 프로젝틋 소유자 확인
+        if (!project.getOwner().getId().equals(userId)) {
+            throw new BusinessException(
+                    HttpStatus.FORBIDDEN,
+                    "FORBIDDEN",
+                    "본인 소유 프로젝트만 수정할 수 있습니다."
+            );
+        }
+
+        // 종료일 검증
+        if (request.getEndDate().isBefore(LocalDate.now())) {
+            throw new BusinessException(
+                    HttpStatus.BAD_REQUEST,
+                    "INVALID_END_DATE",
+                    "종료일은 오늘 이후여야 합니다."
+            );
+        }
+        if (request.getEndDate().isBefore(request.getStartDate())) {
+            throw new BusinessException(
+                    HttpStatus.BAD_REQUEST,
+                    "INVALID_DATE_RANGE",
+                    "종료일은 시작일 이후여야 합니다."
+            );
+        }
+
+        // update
+        project.setName(request.getName());
+        project.setStartDate(request.getStartDate());
+        project.setEndDate(request.getEndDate());
+        project.setStatus(request.getStatus() != null
+                ? Project.Status.valueOf(request.getStatus())
+                : project.getStatus());
+        project.setUpdatedAt(LocalDateTime.now());
+
+        project = projectRepository.save(project);
+
+        return ProjectResponseDto.builder()
+                .id(project.getId())
+                .name(project.getName())
+                .ownerId(project.getOwner().getId())
+                .startDate(project.getStartDate())
+                .endDate(project.getEndDate())
+                .status(project.getStatus().name())
+                .createdAt(project.getCreatedAt())
+                .updatedAt(project.getUpdatedAt())
+                .build();
+    }
 }
