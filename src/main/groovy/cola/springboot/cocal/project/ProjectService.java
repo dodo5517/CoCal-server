@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Service
@@ -27,6 +28,24 @@ public class ProjectService {
                         "USER_NOT_FOUND",
                         "사용자를 찾을 수 없습니다."
                 ));
+
+        // 종료일 검증: 오늘 이전이면 예외 발생
+        if (request.getEndDate().isBefore(LocalDate.now())) {
+            throw new BusinessException(
+                    HttpStatus.BAD_REQUEST,
+                    "INVALID_END_DATE",
+                    "종료일은 오늘 이후여야 합니다."
+            );
+        }
+
+        // 종료일 검증: 시작일보다 이전이면 예외 발생
+        if (request.getEndDate().isBefore(request.getStartDate())) {
+            throw new BusinessException(
+                    HttpStatus.BAD_REQUEST,
+                    "INVALID_DATE_RANGE",
+                    "종료일은 시작일 이후여야 합니다."
+            );
+        }
 
         Project project = new Project();
         project.setName(request.getName());
