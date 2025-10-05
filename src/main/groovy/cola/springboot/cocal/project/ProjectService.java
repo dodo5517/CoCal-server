@@ -59,6 +59,7 @@ public class ProjectService {
         project.setOwner(owner);
         project.setCreatedAt(LocalDateTime.now());
         project.setUpdatedAt(LocalDateTime.now());
+        project.setDescription(request.getDescription());
 
         project = projectRepository.save(project);
 
@@ -83,6 +84,7 @@ public class ProjectService {
                 .status(project.getStatus().name())
                 .createdAt(project.getCreatedAt())
                 .updatedAt(project.getUpdatedAt())
+                .description(project.getDescription())
                 .build();
     }
 
@@ -99,6 +101,7 @@ public class ProjectService {
                         .status(project.getStatus().name())
                         .createdAt(project.getCreatedAt())
                         .updatedAt(project.getUpdatedAt())
+                        .description(project.getDescription())
                         .build());
     }
 
@@ -145,6 +148,7 @@ public class ProjectService {
                 ? Project.Status.valueOf(request.getStatus())
                 : project.getStatus());
         project.setUpdatedAt(LocalDateTime.now());
+        project.setDescription(request.getDescription());
 
         project = projectRepository.save(project);
 
@@ -157,6 +161,7 @@ public class ProjectService {
                 .status(project.getStatus().name())
                 .createdAt(project.getCreatedAt())
                 .updatedAt(project.getUpdatedAt())
+                .description(project.getDescription())
                 .build();
     }
 
