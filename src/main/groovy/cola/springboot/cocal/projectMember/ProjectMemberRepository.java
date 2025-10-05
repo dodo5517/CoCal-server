@@ -10,7 +10,7 @@ public interface ProjectMemberRepository extends JpaRepository<ProjectMember, Lo
     Boolean existsByProjectIdAndUserId(Long projectId, Long userId);
     Boolean existsByProjectIdAndUserIdAndRole(Long projectId, Long userId, ProjectMember.MemberRole role);
 
-    // 초대 수락한 멤버 중 status=ACTIVE인 유저 조회
+    // 멤버 중 status=ACTIVE인 유저 조회
     @Query("""
         select pm
         from ProjectMember pm
