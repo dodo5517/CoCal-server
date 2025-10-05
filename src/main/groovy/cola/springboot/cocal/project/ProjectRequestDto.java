@@ -15,4 +15,5 @@ public class ProjectRequestDto {
     private LocalDate startDate;
     private LocalDate endDate;
     private String status;  // 생략 시 서버에서 기본값 적용
+    private String description;
 }
