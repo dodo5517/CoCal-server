@@ -174,4 +174,24 @@ public class InviteService {
 
         projectMemberRepository.save(member);
     }
+    
+    // 초대 거절
+    @Transactional
+    public void declineInvite(Long inviteId, Long userId) {
+        Invite invite = inviteRepository.findById(inviteId)
+                .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "INVITE_NOT_FOUND", "초대를 찾을 수 없습니다."));
+
+        if (invite.getStatus() != InviteStatus.PENDING) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "INVITE_ALREADY_HANDLED", "이미 처리된 초대입니다.");
+        }
+
+        // 이미 멤버인지 확인
+        boolean alreadyMember = projectMemberRepository.existsByProjectIdAndUserId(invite.getProject().getId(), userId);
+        if (alreadyMember) {
+            throw new BusinessException(HttpStatus.CONFLICT, "ALREADY_MEMBER", "이미 해당 프로젝트의 멤버입니다.");
+        }
+
+        // 초대 상태 업데이트
+        invite.setStatus(InviteStatus.DECLINED);
+    }
 }
