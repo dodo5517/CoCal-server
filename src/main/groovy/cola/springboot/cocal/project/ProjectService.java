@@ -1,6 +1,8 @@
 package cola.springboot.cocal.project;
 
 import cola.springboot.cocal.common.exception.BusinessException;
+import cola.springboot.cocal.projectMember.ProjectMember;
+import cola.springboot.cocal.projectMember.ProjectMemberRepository;
 import cola.springboot.cocal.user.User;
 import cola.springboot.cocal.user.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +19,7 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 public class ProjectService {
     private final ProjectRepository projectRepository;
+    private final ProjectMemberRepository projectMemberRepository;
     private final UserRepository userRepository;
 
     // 프로젝트 생성
@@ -47,6 +50,7 @@ public class ProjectService {
             );
         }
 
+        // db에 project 저장
         Project project = new Project();
         project.setName(request.getName());
         project.setStartDate(request.getStartDate());
@@ -57,6 +61,18 @@ public class ProjectService {
         project.setUpdatedAt(LocalDateTime.now());
 
         project = projectRepository.save(project);
+
+        // 팀원 테이블에 OWNER로 등록
+        ProjectMember member = ProjectMember.builder()
+                .project(project)
+                .user(owner)
+                .role(ProjectMember.MemberRole.OWNER)
+                .status(ProjectMember.MemberStatus.ACTIVE)
+                .updatedAt(LocalDateTime.now())
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        projectMemberRepository.save(member);
 
         return ProjectResponseDto.builder()
                 .id(project.getId())
