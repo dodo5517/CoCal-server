@@ -93,7 +93,7 @@ public class InviteService {
                 .orElseThrow(() -> new BusinessException(
                         HttpStatus.NOT_FOUND,
                         "USER_NOT_FOUND",
-                        "존재하지 않는 유저입니다."
+                        "사용자를 찾을 수 없습니다."
                 )));
         boolean alreadyMember = projectMemberRepository.existsByProjectIdAndUserId(projectId, targetUser.get().getId());
         if (alreadyMember) {
@@ -257,7 +257,6 @@ public class InviteService {
         invite.setStatus(InviteStatus.DECLINED);
     }
 
-
     // 초대 링크 확인 후 정보 조회
     @Transactional
     public InviteResolveResponse resolve(String rawToken) {
@@ -306,7 +305,6 @@ public class InviteService {
         // 그 외는 PENDING
         return InviteEffectiveStatus.PENDING;
     }
-
     private String makeMessage(InviteEffectiveStatus st, Invite inv) {
         return switch (st) {
             case PENDING -> String.format("'%s' 프로젝트에 초대되었습니다.", inv.getProject().getName());
@@ -315,9 +313,50 @@ public class InviteService {
             case ALREADY_ACCEPTED -> "이미 처리된 초대입니다. 새 초대 링크를 받아 다시 시도해주세요.";
         };
     }
-
     // 화면 표시에 쓰는 효과 상태(응답 전용)
     public enum InviteEffectiveStatus {
         PENDING, EXPIRED, CANCEL, ALREADY_ACCEPTED
+    }
+
+    // 링크 초대 수락
+    @Transactional
+    public void acceptLink(String token, Long userId) {
+        // 토큰으로 초대 링크 조회
+        Invite inv = inviteRepository.findByTokenWithJoins(token)
+                .orElseThrow(() -> new BusinessException(
+                        HttpStatus.NOT_FOUND, "INVITE_NOT_FOUND", "유효하지 않은 초대입니다."
+                ));
+
+        // 만료/취소 검증
+        if (inv.getStatus() == InviteStatus.CANCEL) throw new BusinessException(HttpStatus.GONE, "INVITE_CANCELLED", "초대가 취소되었습니다.");
+        if ((inv.getExpiresAt() != null && inv.getExpiresAt().isBefore(LocalDateTime.now())|(inv.getStatus() == Invite.InviteStatus.EXPIRED)))
+            throw new BusinessException(HttpStatus.GONE, "INVITE_EXPIRED", "초대가 만료되었습니다.");
+
+        Long projectId = inv.getProject().getId();
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(
+                        HttpStatus.NOT_FOUND,
+                        "USER_NOT_FOUND",
+                        "사용자를 찾을 수 없습니다."
+                ));
+
+        // 이미 멤버면 멱등 OK
+        if (!projectMemberRepository.existsByProjectIdAndUserId(projectId, userId)) {
+            ProjectMember member = ProjectMember.builder()
+                    .project(inv.getProject())
+                    .user(user)
+                    .role(ProjectMember.MemberRole.MEMBER)
+                    .status(ProjectMember.MemberStatus.ACTIVE)
+                    .updatedAt(LocalDateTime.now())
+                    .createdAt(LocalDateTime.now())
+                    .build();
+            projectMemberRepository.save(member);
+        }
+
+        inv.setType(InviteType.EMAIL);
+        inv.setEmail(user.getEmail());
+        inv.setStatus(InviteStatus.ACCEPTED);
+        inv.setUpdatedAt(LocalDateTime.now());
     }
 }
