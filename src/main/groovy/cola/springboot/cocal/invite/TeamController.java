@@ -5,6 +5,8 @@ import cola.springboot.cocal.invite.dto.InviteCreateRequest;
 import cola.springboot.cocal.invite.dto.InviteListRequest;
 import cola.springboot.cocal.invite.dto.InviteListResponse;
 import cola.springboot.cocal.invite.dto.InviteResponse;
+import cola.springboot.cocal.invite.dto.MemberListDto.MemberListResponse;
+import cola.springboot.cocal.projectMember.MemberListQueryService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +25,7 @@ public class TeamController {
 
     private final InviteService inviteService;
     private final InviteQueryService inviteQueryService;
+    private final MemberListQueryService memberListQueryService;
 
     // 초대 생성
     @PostMapping("/{projectId}/invite")
@@ -52,6 +55,18 @@ public class TeamController {
         req.setSort(sort);
 
         Page<InviteListResponse> data = inviteQueryService.listMyInvites(userId, req);
+        return ResponseEntity.ok(ApiResponse.ok(data, httpReq.getRequestURI()));
+    }
+
+    // 프로젝트의 팀원/초대 현황 조회(초대는 PENDING만 조회)
+    @GetMapping("/{projectId}/list")
+    public ResponseEntity<ApiResponse<MemberListResponse>> getMemberList(
+            @PathVariable Long projectId,
+            Authentication auth,
+            HttpServletRequest httpReq) {
+
+        Long requesterUserId = Long.parseLong(auth.getName());
+        MemberListResponse data = memberListQueryService.getMemberList(requesterUserId, projectId);
         return ResponseEntity.ok(ApiResponse.ok(data, httpReq.getRequestURI()));
     }
 
