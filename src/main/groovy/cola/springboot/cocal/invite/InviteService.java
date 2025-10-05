@@ -57,12 +57,14 @@ public class InviteService {
                         "존재하지 않는 프로젝트입니다."
                 ));
 
-        // 프로젝트 소유자(팀장)인지 확인
-        if (!project.getOwner().getId().equals(inviterUserId)) {
+        // 프로젝트 소유자 또는 관리자인지 확인
+        boolean isOwner = project.getOwner().getId().equals(inviterUserId);
+        boolean isAdmin = projectMemberRepository.existsByProjectIdAndUserIdAndRole(projectId, inviterUserId, ProjectMember.MemberRole.ADMIN);
+        if (!isOwner && !isAdmin) {
             throw new BusinessException(
                     HttpStatus.FORBIDDEN,
-                    "NOT_PROJECT_OWNER",
-                    "해당 프로젝트의 소유자만 초대를 생성할 수 있습니다."
+                    "INVITE_NOT_ALLOWED",
+                    "프로젝트의 소유자만 초대할 수 있습니다."
             );
         }
 
