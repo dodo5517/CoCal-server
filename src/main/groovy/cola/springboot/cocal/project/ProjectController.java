@@ -1,19 +1,17 @@
 package cola.springboot.cocal.project;
 
 import cola.springboot.cocal.common.api.ApiResponse;
-import cola.springboot.cocal.common.exception.BusinessException;
 import cola.springboot.cocal.user.User;
 import cola.springboot.cocal.user.UserRepository;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -64,6 +62,18 @@ public class ProjectController {
         return ResponseEntity.ok(ApiResponse.ok(data, httpReq.getRequestURI()));
     }
 
+    // project update
+    @PutMapping("/{projectId}")
+    public ResponseEntity<ApiResponse<ProjectResponseDto>> updateProject(
+            @PathVariable("projectId") Long projectId,  // 이름 명시
+            @Valid @RequestBody ProjectRequestDto request,
+            Authentication authentication,
+            HttpServletRequest httpReq) {
+
+        Long userId = Long.parseLong(authentication.getName());
+        ProjectResponseDto data = projectService.updateProject(projectId, request, userId);
+        return ResponseEntity.ok(ApiResponse.ok(data, httpReq.getRequestURI()));
+    }
 }
 
 
