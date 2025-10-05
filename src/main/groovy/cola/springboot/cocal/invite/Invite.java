@@ -57,7 +57,7 @@ public class Invite {
 
     private LocalDateTime expiresAt;
 
-    @Column(nullable = false, updatable = false)
+    @Column(nullable = false)
     private LocalDateTime updatedAt = LocalDateTime.now();
 
     @Column(nullable = false, updatable = false)

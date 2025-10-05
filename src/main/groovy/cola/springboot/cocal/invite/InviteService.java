@@ -46,8 +46,8 @@ public class InviteService {
 
     // 프로젝트에 초대
     @Transactional
-    public InviteResponse createInvite(Long inviterUserId, InviteCreateRequest req) {
-        Project project = projectRepository.findById(req.getProjectId())
+    public InviteResponse createInvite(Long inviterUserId, Long projectId, InviteCreateRequest req) {
+        Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new BusinessException(
                         HttpStatus.NOT_FOUND,
                         "PROJECT_NOT_FOUND",

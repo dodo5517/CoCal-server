@@ -6,6 +6,15 @@ plugins {
     id "org.flywaydb.flyway" version "9.22.3"
 }
 
+tasks.withType(JavaCompile) {
+    options.compilerArgs += ['-parameters']
+}
+
+tasks.withType(GroovyCompile).configureEach {
+    groovyOptions.parameters = true         // <-- 핵심!
+    options.compilerArgs += ['-parameters'] // (겹쳐도 무방, 안전하게 같이 넣기)
+}
+
 group = 'cola.springboot'
 version = '0.0.1-SNAPSHOT'
 description = 'cocal'
@@ -54,14 +63,11 @@ dependencies {
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.12.5'
     runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.12.5'
 
-    //security
+    //security, BCrypt 사용
     implementation 'org.springframework.boot:spring-boot-starter-security'
 
     //Swagger
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.0.2'
-
-    // BCrypt 사용
-    implementation 'org.springframework.boot:spring-boot-starter-security'
 
     // OAuth2 Client
     implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
