@@ -1,6 +1,8 @@
 package cola.springboot.cocal.project;
 
 import cola.springboot.cocal.common.exception.BusinessException;
+import cola.springboot.cocal.projectMember.ProjectMember;
+import cola.springboot.cocal.projectMember.ProjectMemberRepository;
 import cola.springboot.cocal.user.User;
 import cola.springboot.cocal.user.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +19,7 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 public class ProjectService {
     private final ProjectRepository projectRepository;
+    private final ProjectMemberRepository projectMemberRepository;
     private final UserRepository userRepository;
 
     // 프로젝트 생성
@@ -47,6 +50,7 @@ public class ProjectService {
             );
         }
 
+        // db에 project 저장
         Project project = new Project();
         project.setName(request.getName());
         project.setStartDate(request.getStartDate());
@@ -57,6 +61,18 @@ public class ProjectService {
         project.setUpdatedAt(LocalDateTime.now());
 
         project = projectRepository.save(project);
+
+        // 팀원 테이블에 OWNER로 등록
+        ProjectMember member = ProjectMember.builder()
+                .project(project)
+                .user(owner)
+                .role(ProjectMember.MemberRole.OWNER)
+                .status(ProjectMember.MemberStatus.ACTIVE)
+                .updatedAt(LocalDateTime.now())
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        projectMemberRepository.save(member);
 
         return ProjectResponseDto.builder()
                 .id(project.getId())
@@ -142,5 +158,28 @@ public class ProjectService {
                 .createdAt(project.getCreatedAt())
                 .updatedAt(project.getUpdatedAt())
                 .build();
+    }
+
+    // 프로젝트 삭제
+    @Transactional
+    public void deleteProject(Long projectId, Long userId) {
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new BusinessException(
+                        HttpStatus.NOT_FOUND,
+                        "PROJECT_NOT_FOUND",
+                        "프로젝트를 찾을 수 없습니다."
+                ));
+
+        // 소유자 확인
+        if (!project.getOwner().getId().equals(userId)) {
+            throw new BusinessException(
+                    HttpStatus.FORBIDDEN,
+                    "FORBIDDEN",
+                    "본인 소유 프로젝트만 삭제할 수 있습니다."
+            );
+        }
+
+        // 프로젝트 삭제
+        projectRepository.delete(project);
     }
 }
