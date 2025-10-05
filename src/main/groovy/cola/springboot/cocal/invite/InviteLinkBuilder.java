@@ -11,7 +11,7 @@ public class InviteLinkBuilder {
     private String frontendBaseUrl;
 
     public String build(String token) {
-        return String.format("%s/invite/%s", trimSlash(frontendBaseUrl), token);
+        return String.format("%s/invites/%s", trimSlash(frontendBaseUrl), token);
     }
 
     private String trimSlash(String s) {

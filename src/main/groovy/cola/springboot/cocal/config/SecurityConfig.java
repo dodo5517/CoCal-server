@@ -53,6 +53,8 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // 모든 OPTIONS 허용 (preflight 통과)
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        // 링크 초대 요청 정보 조회
+                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/invites/resolve").permitAll()
                         // 인증/토큰 관련(ex.로그인, 토큰 재발급, 로그아웃)
                         .requestMatchers("/api/auth/**").permitAll()
                         // 헬스체크/버전
