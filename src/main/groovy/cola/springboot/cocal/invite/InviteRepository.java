@@ -6,6 +6,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 public interface InviteRepository extends JpaRepository<Invite, Long> {
@@ -36,5 +38,18 @@ public interface InviteRepository extends JpaRepository<Invite, Long> {
             Pageable pageable
     );
 
-
+    // 프로젝트의 초대 상태가 PENDING인 초대 요청만 조회
+    @Query("""
+        select i
+        from Invite i
+        join fetch i.project p
+        left join fetch i.invitedBy inviter
+        where p.id = :projectId
+          and i.status in :statuses
+        order by i.createdAt desc
+    """)
+    List<Invite> findByProjectAndStatuses(
+            @Param("projectId") Long projectId,
+            @Param("statuses") Collection<Invite.InviteStatus> statuses
+    );
 }
