@@ -159,4 +159,27 @@ public class ProjectService {
                 .updatedAt(project.getUpdatedAt())
                 .build();
     }
+
+    // 프로젝트 삭제
+    @Transactional
+    public void deleteProject(Long projectId, Long userId) {
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new BusinessException(
+                        HttpStatus.NOT_FOUND,
+                        "PROJECT_NOT_FOUND",
+                        "프로젝트를 찾을 수 없습니다."
+                ));
+
+        // 소유자 확인
+        if (!project.getOwner().getId().equals(userId)) {
+            throw new BusinessException(
+                    HttpStatus.FORBIDDEN,
+                    "FORBIDDEN",
+                    "본인 소유 프로젝트만 삭제할 수 있습니다."
+            );
+        }
+
+        // 프로젝트 삭제
+        projectRepository.delete(project);
+    }
 }

@@ -74,6 +74,19 @@ public class ProjectController {
         ProjectResponseDto data = projectService.updateProject(projectId, request, userId);
         return ResponseEntity.ok(ApiResponse.ok(data, httpReq.getRequestURI()));
     }
+
+    // project delete
+    @DeleteMapping("/{projectId}")
+    public ResponseEntity<ApiResponse<String>> deleteProject(
+            @PathVariable("projectId") Long projectId,
+            Authentication authentication,
+            HttpServletRequest httpReq) {
+
+        Long userId = Long.parseLong(authentication.getName());
+        projectService.deleteProject(projectId, userId);
+
+        return ResponseEntity.ok(ApiResponse.ok("프로젝트가 삭제되었습니다.", httpReq.getRequestURI()));
+    }
 }
 
 
