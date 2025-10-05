@@ -28,7 +28,7 @@ public class TeamController {
     private final MemberListQueryService memberListQueryService;
 
     // 이메일로 초대 생성
-    @PostMapping("/{projectId}/invite-email")
+    @PostMapping("/{projectId}/invites-email")
     public ResponseEntity<ApiResponse<InviteResponse>> createEmail(@PathVariable Long projectId,
                                                               @Valid @RequestBody InviteCreateRequest req,
                                                               HttpServletRequest httpReq,
@@ -39,7 +39,7 @@ public class TeamController {
     }
 
     // 초대 링크 복사(생성)
-    @GetMapping("/{projectId}/invite-link")
+    @GetMapping("/{projectId}/invites-link")
     public ResponseEntity<ApiResponse<InviteResponse>> createLink(@PathVariable Long projectId,
                                                                   @Valid @RequestBody InviteCreateRequest req,
                                                               HttpServletRequest httpReq,
@@ -50,7 +50,7 @@ public class TeamController {
     }
 
     // 내가 받은 초대 목록 조회
-    @GetMapping("/invite/me")
+    @GetMapping("/invites/me")
     public ResponseEntity<ApiResponse<Page<InviteListResponse>>> listMyInvites(
             Authentication authentication, HttpServletRequest httpReq,
             @RequestParam(required = false) String status,
@@ -82,7 +82,7 @@ public class TeamController {
     }
 
     // 초대 수락
-    @PostMapping("/invite/{inviteId}/accept")
+    @PostMapping("/invites/{inviteId}/accept")
     public ResponseEntity<ApiResponse<Map<String, String>>> acceptInvite(
             @PathVariable Long inviteId,
             Authentication auth,
@@ -95,7 +95,7 @@ public class TeamController {
     }
 
     // 초대 거절
-    @PostMapping("/invite/{inviteId}/decline")
+    @PostMapping("/invites/{inviteId}/decline")
     public ResponseEntity<ApiResponse<Map<String, String>>> declineInvite(
             @PathVariable Long inviteId,
             Authentication auth,
