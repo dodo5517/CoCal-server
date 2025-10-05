@@ -27,18 +27,13 @@ public class ProjectController {
 
     // 프로젝트 생성
     @PostMapping()
-    public ResponseEntity<ApiResponse<Project>> createProject(@RequestBody Project project, Authentication authentication,
-                                                              HttpServletRequest httpReq) {
-        Long userId = Long.parseLong(authentication.getName()); // User ID 가져오기
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new BusinessException(
-                        HttpStatus.NOT_FOUND,
-                        "USER_NOT_FOUND",
-                        "존재하지 않는 유저입니다."
-                ));
+    public ResponseEntity<ApiResponse<ProjectResponseDto>> createProject(
+            @RequestBody ProjectRequestDto request,
+            Authentication authentication,
+            HttpServletRequest httpReq) {
 
-        project.setOwner(user); // owner에 로그인 사용자 세팅
-        Project data = projectRepository.save(project);
+        Long userId = Long.parseLong(authentication.getName()); // userId 가져오기
+        ProjectResponseDto data = projectService.createProject(userId, request);
         return ResponseEntity.ok(ApiResponse.ok(data, httpReq.getRequestURI()));
     }
 
