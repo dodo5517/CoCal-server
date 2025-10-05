@@ -13,6 +13,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -44,17 +45,27 @@ public class ProjectController {
 
     // project 목록 조회
     @GetMapping()
-    public ResponseEntity<ApiResponse<Page<ProjectResponseDto>>> getProjects(
+    public ResponseEntity<ApiResponse<Page<ProjectResponseDto>>> getMyProjects(
             // 쿼리 파라미터로 page와 size를 받음, 없으면 기본값 사용
             @RequestParam(name = "page", defaultValue = "0") int page,
-            @RequestParam(name = "size", defaultValue = "20") int size,
+            @RequestParam(name = "size", defaultValue = "10") int size,
+            Authentication authentication,
             HttpServletRequest httpReq
     ) {
         // Pageable 객체 생성: 페이지 번호, 페이지 크기, 정렬 기준 포함
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
 
+        // principal이 Long이면 이렇게 캐스팅
+        Long userId = (Long) authentication.getPrincipal();
+
+        // 이메일은 UserRepository에서 꺼내기
+        String email = userRepository.findById(userId)
+                .map(User::getEmail)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
         // Service 호출 → DB에서 페이지 단위로 ProjectResponseDto 리스트 가져오기
-        Page<ProjectResponseDto> data = projectService.getProjects(pageable);
+        Page<ProjectResponseDto> data = projectService.getProjects(userId, email, pageable);
+
         return ResponseEntity.ok(ApiResponse.ok(data, httpReq.getRequestURI()));
     }
 
