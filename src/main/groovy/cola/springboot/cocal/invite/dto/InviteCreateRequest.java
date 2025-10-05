@@ -12,5 +12,5 @@ public class InviteCreateRequest {
     private String email;
 
     // 만료일 며칠로 할지
-    private Integer expireDays;
+    private Integer expireDays = 7;
 }
