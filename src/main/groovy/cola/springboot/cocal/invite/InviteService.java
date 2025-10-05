@@ -6,6 +6,8 @@ import cola.springboot.cocal.invite.dto.InviteCreateRequest;
 import cola.springboot.cocal.invite.dto.InviteResponse;
 import cola.springboot.cocal.project.Project;
 import cola.springboot.cocal.project.ProjectRepository;
+import cola.springboot.cocal.projectMember.ProjectMember;
+import cola.springboot.cocal.projectMember.ProjectMemberRepository;
 import cola.springboot.cocal.user.User;
 import cola.springboot.cocal.user.UserRepository;
 import jakarta.transaction.Transactional;
@@ -23,6 +25,7 @@ import java.util.Optional;
 public class InviteService {
 
     private final ProjectRepository projectRepository;
+    private final ProjectMemberRepository projectMemberRepository;
     private final InviteRepository inviteRepository;
     private final UserRepository userRepository;
 
@@ -127,5 +130,37 @@ public class InviteService {
                 .createdAt(LocalDateTime.now())
                 .build();
         return inviteRepository.save(newInv);
+    }
+
+    // 초대 수락
+    @Transactional
+    public void acceptInvite(Long inviteId, Long userId) {
+        Invite invite = inviteRepository.findById(inviteId)
+                .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "INVITE_NOT_FOUND", "초대를 찾을 수 없습니다."));
+
+        if (invite.getStatus() != InviteStatus.PENDING) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "INVITE_ALREADY_HANDLED", "이미 처리된 초대입니다.");
+        }
+
+        // 이미 멤버인지 확인
+        boolean alreadyMember = projectMemberRepository.existsByProjectIdAndUserId(invite.getProject().getId(), userId);
+        if (alreadyMember) {
+            throw new BusinessException(HttpStatus.CONFLICT, "ALREADY_MEMBER", "이미 해당 프로젝트의 멤버입니다.");
+        }
+
+        // 초대 상태 업데이트
+        invite.setStatus(InviteStatus.ACCEPTED);
+
+        // 팀원 등록
+        ProjectMember member = ProjectMember.builder()
+                .project(invite.getProject())
+                .user(userRepository.findById(userId).orElseThrow())
+                .role(ProjectMember.MemberRole.MEMBER)
+                .status(ProjectMember.MemberStatus.ACTIVE)
+                .updatedAt(LocalDateTime.now())
+                .createdAt(LocalDateTime.now())
+                .build();
+
+        projectMemberRepository.save(member);
     }
 }
