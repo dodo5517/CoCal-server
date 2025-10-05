@@ -49,6 +49,10 @@ public class Project {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    // 추가
+    @Column(columnDefinition = "TEXT") // 길이 제한 없이 TEXT로 저장
+    private String description; // nullable 가능
+
     public enum Status {
         IN_PROGRESS,
         COMPLETED
