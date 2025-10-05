@@ -1,6 +1,7 @@
 package cola.springboot.cocal.project;
 
 import cola.springboot.cocal.common.exception.BusinessException;
+import cola.springboot.cocal.invite.InviteRepository;
 import cola.springboot.cocal.projectMember.ProjectMember;
 import cola.springboot.cocal.projectMember.ProjectMemberRepository;
 import cola.springboot.cocal.user.User;
@@ -21,6 +22,7 @@ public class ProjectService {
     private final ProjectRepository projectRepository;
     private final ProjectMemberRepository projectMemberRepository;
     private final UserRepository userRepository;
+    private final InviteRepository inviteRepository;
 
     // 프로젝트 생성
     @Transactional
@@ -103,6 +105,42 @@ public class ProjectService {
                         .updatedAt(project.getUpdatedAt())
                         .description(project.getDescription())
                         .build());
+    }
+
+    // 프로젝트 개별 조회
+    @Transactional(readOnly = true)
+    public ProjectResponseDto getProjectById(Long projectId, Long userId, String email) {
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new BusinessException(
+                        HttpStatus.NOT_FOUND,
+                        "PROJECT_NOT_FOUND",
+                        "존재하지 않는 프로젝트입니다."
+                ));
+
+        // 소유자 이거나 초대 받은 사용자 중 수락한 경우만
+        boolean isOwner = project.getOwner().getId().equals(userId);
+        boolean isAcceptedInvitee = inviteRepository.existsAcceptedInvite(projectId, email);
+
+        if (!isOwner && !isAcceptedInvitee) {
+            throw new BusinessException(
+                    HttpStatus.FORBIDDEN,
+                    "FORBIDDEN",
+                    "프로젝트 접근 권한이 없습니다."
+            );
+        }
+
+        return ProjectResponseDto.builder()
+            .id(project.getId())
+            .name(project.getName())
+            .ownerId(project.getOwner().getId())
+            .startDate(project.getStartDate())
+            .endDate(project.getEndDate())
+            .status(project.getStatus().name())
+            .createdAt(project.getCreatedAt())
+            .updatedAt(project.getUpdatedAt())
+            .description(project.getDescription())
+            .build();
+
     }
 
     // 프로젝트 수정

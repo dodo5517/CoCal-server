@@ -1,6 +1,7 @@
 package cola.springboot.cocal.project;
 
 import cola.springboot.cocal.common.api.ApiResponse;
+import cola.springboot.cocal.common.exception.BusinessException;
 import cola.springboot.cocal.user.User;
 import cola.springboot.cocal.user.UserRepository;
 import jakarta.servlet.http.HttpServletRequest;
@@ -10,6 +11,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -59,6 +61,26 @@ public class ProjectController {
         // Service 호출 → DB에서 페이지 단위로 ProjectResponseDto 리스트 가져오기
         Page<ProjectResponseDto> data = projectService.getProjects(userId, email, pageable);
 
+        return ResponseEntity.ok(ApiResponse.ok(data, httpReq.getRequestURI()));
+    }
+
+    // project 개별 정보 조회
+    @GetMapping("/{projectId}")
+    public ResponseEntity<ApiResponse<ProjectResponseDto>> getProjectById(
+            @PathVariable("projectId") Long projectId,
+            Authentication authentication,
+            HttpServletRequest httpReq
+    ) {
+        Long userId = Long.parseLong(authentication.getName());
+        String email = userRepository.findById(userId)
+                .map(User::getEmail)
+                .orElseThrow(() -> new BusinessException(
+                        HttpStatus.NOT_FOUND,
+                        "USER_NOT_FOUND",
+                        "사용자를 찾을 수 없습니다."
+                ));
+
+        ProjectResponseDto data = projectService.getProjectById(projectId, userId, email);
         return ResponseEntity.ok(ApiResponse.ok(data, httpReq.getRequestURI()));
     }
 
