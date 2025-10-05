@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -77,6 +78,14 @@ public class ProjectService {
 
         projectMemberRepository.save(member);
 
+        // 멤버 정보 DTO
+        ProjectMemberInfoDto memberInfo = ProjectMemberInfoDto.builder()
+                .userId(owner.getId())
+                .name(owner.getName())
+                .email(owner.getEmail())
+                .profileImageUrl(owner.getProfileImageUrl())
+                .build();
+
         return ProjectResponseDto.builder()
                 .id(project.getId())
                 .name(project.getName())
@@ -87,6 +96,7 @@ public class ProjectService {
                 .createdAt(project.getCreatedAt())
                 .updatedAt(project.getUpdatedAt())
                 .description(project.getDescription())
+                .members(List.of(memberInfo))
                 .build();
     }
 
@@ -94,17 +104,31 @@ public class ProjectService {
     @Transactional(readOnly = true)
     public Page<ProjectResponseDto> getProjects(Long userId, String email, Pageable pageable) {
         return projectRepository.findMyProjects(userId, email, pageable)
-                .map(project -> ProjectResponseDto.builder()
-                        .id(project.getId())
-                        .name(project.getName())
-                        .ownerId(project.getOwner().getId())
-                        .startDate(project.getStartDate())
-                        .endDate(project.getEndDate())
-                        .status(project.getStatus().name())
-                        .createdAt(project.getCreatedAt())
-                        .updatedAt(project.getUpdatedAt())
-                        .description(project.getDescription())
-                        .build());
+                .map(project -> {
+                    List<ProjectMemberInfoDto> members = projectMemberRepository.findActiveMembersWithUser(project.getId())
+                            .stream()
+                            .map(pm -> ProjectMemberInfoDto.builder()
+                                    .userId(pm.getUser().getId())
+                                    .name(pm.getUser().getName())
+                                    .email(pm.getUser().getEmail())
+                                    .profileImageUrl(pm.getUser().getProfileImageUrl())
+                                    .build())
+                            .toList();
+
+                    // ProjectResponseDto 매핑
+                    return ProjectResponseDto.builder()
+                            .id(project.getId())
+                            .name(project.getName())
+                            .ownerId(project.getOwner().getId())
+                            .startDate(project.getStartDate())
+                            .endDate(project.getEndDate())
+                            .status(project.getStatus().name())
+                            .createdAt(project.getCreatedAt())
+                            .updatedAt(project.getUpdatedAt())
+                            .description(project.getDescription())
+                            .members(members)
+                            .build();
+                });
     }
 
     // 프로젝트 개별 조회
@@ -129,6 +153,17 @@ public class ProjectService {
             );
         }
 
+        // 팀원 목록
+        List<ProjectMember> members = projectMemberRepository.findActiveMembersWithUser(projectId);
+        List<ProjectMemberInfoDto> memberDtos = members.stream()
+                .map(pm -> ProjectMemberInfoDto.builder()
+                        .userId(pm.getUser().getId())
+                        .name(pm.getUser().getName())
+                        .email(pm.getUser().getEmail())
+                        .profileImageUrl(pm.getUser().getProfileImageUrl())
+                        .build())
+                .toList();
+
         return ProjectResponseDto.builder()
             .id(project.getId())
             .name(project.getName())
@@ -139,8 +174,8 @@ public class ProjectService {
             .createdAt(project.getCreatedAt())
             .updatedAt(project.getUpdatedAt())
             .description(project.getDescription())
+            .members(memberDtos)
             .build();
-
     }
 
     // 프로젝트 수정
@@ -190,6 +225,17 @@ public class ProjectService {
 
         project = projectRepository.save(project);
 
+        // 멤버 정보 DTO
+        List<ProjectMemberInfoDto> members = projectMemberRepository.findActiveMembersWithUser(project.getId())
+                .stream()
+                .map(pm -> ProjectMemberInfoDto.builder()
+                        .userId(pm.getUser().getId())
+                        .name(pm.getUser().getName())
+                        .email(pm.getUser().getEmail())
+                        .profileImageUrl(pm.getUser().getProfileImageUrl())
+                        .build())
+                .toList();
+
         return ProjectResponseDto.builder()
                 .id(project.getId())
                 .name(project.getName())
@@ -200,6 +246,7 @@ public class ProjectService {
                 .createdAt(project.getCreatedAt())
                 .updatedAt(project.getUpdatedAt())
                 .description(project.getDescription())
+                .members(members)
                 .build();
     }
 
