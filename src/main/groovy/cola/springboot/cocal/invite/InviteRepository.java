@@ -63,4 +63,14 @@ public interface InviteRepository extends JpaRepository<Invite, Long> {
     """)
     boolean existsAcceptedInvite(@Param("projectId") Long projectId, @Param("email") String email);
 
+    // 활성 OPEN_LINK 초대 1건 조회(재사용 대상)
+    @Query("""
+        select i from Invite i
+        where i.project.id = :projectId
+          and i.type = 'OPEN_LINK'
+          and i.status = 'PENDING'
+          and (i.expiresAt is null or i.expiresAt > CURRENT_TIMESTAMP)
+        order by i.createdAt desc
+    """)
+    Optional<Invite> findActiveOpenLink(@Param("projectId") Long projectId);
 }
