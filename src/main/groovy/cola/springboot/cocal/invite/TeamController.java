@@ -27,14 +27,25 @@ public class TeamController {
     private final InviteQueryService inviteQueryService;
     private final MemberListQueryService memberListQueryService;
 
-    // 초대 생성
-    @PostMapping("/{projectId}/invite")
-    public ResponseEntity<ApiResponse<InviteResponse>> create(@PathVariable Long projectId,
+    // 이메일로 초대 생성
+    @PostMapping("/{projectId}/invite-email")
+    public ResponseEntity<ApiResponse<InviteResponse>> createEmail(@PathVariable Long projectId,
                                                               @Valid @RequestBody InviteCreateRequest req,
                                                               HttpServletRequest httpReq,
                                                               Authentication auth) {
         Long inviterUserId = Long.parseLong(auth.getName());
-        InviteResponse data = inviteService.createInvite(inviterUserId, projectId, req);
+        InviteResponse data = inviteService.createEmailInvite(inviterUserId, projectId, req);
+        return ResponseEntity.ok(ApiResponse.ok(data, httpReq.getRequestURI()));
+    }
+
+    // 초대 링크 복사(생성)
+    @GetMapping("/{projectId}/invite-link")
+    public ResponseEntity<ApiResponse<InviteResponse>> createLink(@PathVariable Long projectId,
+                                                                  @Valid @RequestBody InviteCreateRequest req,
+                                                              HttpServletRequest httpReq,
+                                                              Authentication auth) {
+        Long inviterUserId = Long.parseLong(auth.getName());
+        InviteResponse data = inviteService.getOrCreateOpenLinkInvite(inviterUserId, projectId, req.getExpireDays());
         return ResponseEntity.ok(ApiResponse.ok(data, httpReq.getRequestURI()));
     }
 
