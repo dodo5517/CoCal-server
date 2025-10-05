@@ -52,8 +52,9 @@ public class ProjectService {
     }
 
     // 목록 조회
-    public Page<ProjectResponseDto> getProjects(Pageable pageable) {
-        return projectRepository.findAll(pageable)
+    @Transactional(readOnly = true)
+    public Page<ProjectResponseDto> getProjects(Long userId, String email, Pageable pageable) {
+        return projectRepository.findMyProjects(userId, email, pageable)
                 .map(project -> ProjectResponseDto.builder()
                         .id(project.getId())
                         .name(project.getName())
@@ -65,4 +66,5 @@ public class ProjectService {
                         .updatedAt(project.getUpdatedAt())
                         .build());
     }
+
 }
