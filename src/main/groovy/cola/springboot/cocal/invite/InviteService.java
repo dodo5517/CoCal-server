@@ -4,6 +4,7 @@ import cola.springboot.cocal.common.exception.BusinessException;
 import cola.springboot.cocal.invite.Invite.InviteStatus;
 import cola.springboot.cocal.invite.Invite.InviteType;
 import cola.springboot.cocal.invite.dto.InviteCreateRequest;
+import cola.springboot.cocal.invite.dto.InviteResolveResponse;
 import cola.springboot.cocal.invite.dto.InviteResponse;
 import cola.springboot.cocal.project.Project;
 import cola.springboot.cocal.project.ProjectRepository;
@@ -204,7 +205,7 @@ public class InviteService {
         return InviteResponse.of(saved, link);
     }
 
-    // 초대 수락
+    // 초대함에서 초대 수락
     @Transactional
     public void acceptInvite(Long inviteId, Long userId) {
         Invite invite = inviteRepository.findById(inviteId)
@@ -236,7 +237,7 @@ public class InviteService {
         projectMemberRepository.save(member);
     }
 
-    // 초대 거절
+    // 초대함에서 초대 거절
     @Transactional
     public void declineInvite(Long inviteId, Long userId) {
         Invite invite = inviteRepository.findById(inviteId)
@@ -254,5 +255,69 @@ public class InviteService {
 
         // 초대 상태 업데이트
         invite.setStatus(InviteStatus.DECLINED);
+    }
+
+
+    // 초대 링크 확인 후 정보 조회
+    @Transactional
+    public InviteResolveResponse resolve(String rawToken) {
+        String token = rawToken == null ? "" : rawToken.trim();
+        if (token.isEmpty()) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "INVALID_TOKEN", "토큰이 비어 있습니다.");
+        }
+
+        // 토큰으로 초대 링크 조회
+        Invite inv = inviteRepository.findByTokenWithJoins(token)
+                .orElseThrow(() -> new BusinessException(
+                        HttpStatus.NOT_FOUND, "INVITE_NOT_FOUND", "유효하지 않은 초대입니다."
+                ));
+
+        // 실제 상태 계산(만료/사용초과/취소 등)
+        InviteEffectiveStatus effective = computeEffectiveStatus(inv);
+
+        // 프론트가 안내를 위해 필요한 최소 정보만 노출 (과노출 금지)
+        return InviteResolveResponse.builder()
+                .inviteId(inv.getId())
+                .projectId(inv.getProject().getId())
+                .projectName(inv.getProject().getName())
+                .invitedByEmail(inv.getInvitedBy() != null ? inv.getInvitedBy().getEmail() : null)
+                .type(inv.getType().name())        // EMAIL or OPEN_LINK
+                .status(effective.name())          // PENDING / EXPIRED / CANCELLED / LIMIT_REACHED 등
+                .expiresAt(inv.getExpiresAt())
+                .message(makeMessage(effective, inv))
+                .build();
+    }
+
+    private InviteEffectiveStatus computeEffectiveStatus(Invite inv) {
+        // 취소된 경우
+        if (inv.getStatus() == Invite.InviteStatus.CANCEL) return InviteEffectiveStatus.CANCEL;
+
+        // 만료됐는지 확인 -> 시간 지났으면 만료 처리
+        LocalDateTime now = LocalDateTime.now();
+        if (inv.getExpiresAt() != null && inv.getExpiresAt().isBefore(now)) return InviteEffectiveStatus.EXPIRED;
+        // 만료된 경우
+        if (inv.getStatus() == Invite.InviteStatus.EXPIRED) return InviteEffectiveStatus.EXPIRED;
+
+        // 이미 수락된 단건 초대(EMAIL 타입 등)면 유효 아님으로 취급할지 판단
+        if (inv.getType() == Invite.InviteType.EMAIL && inv.getStatus() == Invite.InviteStatus.ACCEPTED) {
+            return InviteEffectiveStatus.ALREADY_ACCEPTED;
+        }
+
+        // 그 외는 PENDING
+        return InviteEffectiveStatus.PENDING;
+    }
+
+    private String makeMessage(InviteEffectiveStatus st, Invite inv) {
+        return switch (st) {
+            case PENDING -> String.format("'%s' 프로젝트에 초대되었습니다.", inv.getProject().getName());
+            case EXPIRED -> "초대가 만료되었습니다.";
+            case CANCEL -> "취소된 초대입니다.";
+            case ALREADY_ACCEPTED -> "이미 처리된 초대입니다. 새 초대 링크를 받아 다시 시도해주세요.";
+        };
+    }
+
+    // 화면 표시에 쓰는 효과 상태(응답 전용)
+    public enum InviteEffectiveStatus {
+        PENDING, EXPIRED, CANCEL, ALREADY_ACCEPTED
     }
 }

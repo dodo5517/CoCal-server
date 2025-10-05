@@ -73,4 +73,14 @@ public interface InviteRepository extends JpaRepository<Invite, Long> {
         order by i.createdAt desc
     """)
     Optional<Invite> findActiveOpenLink(@Param("projectId") Long projectId);
+
+    // 초대 토큰 확인
+    @Query("""
+        select i
+        from Invite i
+        join fetch i.project p
+        left join fetch i.invitedBy u
+        where i.token = :token
+        """)
+    Optional<Invite> findByTokenWithJoins(String token);
 }
