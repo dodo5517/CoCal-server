@@ -4,6 +4,8 @@ import cola.springboot.cocal.common.exception.BusinessException;
 import cola.springboot.cocal.event.dto.EventCreateRequest;
 import cola.springboot.cocal.event.dto.EventCreateResponse;
 import cola.springboot.cocal.event.dto.EventResponse;
+import cola.springboot.cocal.eventMember.EventMember;
+import cola.springboot.cocal.eventMember.EventMemberRepository;
 import cola.springboot.cocal.project.Project;
 import cola.springboot.cocal.project.ProjectRepository;
 import cola.springboot.cocal.projectMember.ProjectMember;
@@ -18,6 +20,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Objects;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -26,6 +32,7 @@ public class EventService {
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
     private final ProjectMemberRepository projectMemberRepository;
+    private final EventMemberRepository eventMemberRepository;
 
     // event(일정) 생성
     @Transactional
@@ -81,6 +88,39 @@ public class EventService {
 
         event = eventRepository.save(event);
 
+        // 이벤트 멤버 세트 구성
+        Set<Long> userIds = new HashSet<>();
+        if (request.getMemberUserIds() != null) {
+            request.getMemberUserIds().stream()
+                    .filter(Objects::nonNull)
+                    .forEach(userIds::add);
+        }
+        userIds.add(userId); // 본인은 자동 포함
+
+        // 프로젝트 멤버 검증
+        Set<Long> projectMemberIds = projectMemberRepository
+                .findMemberUserIdsInProject(projectId, userIds);
+        if (projectMemberIds.size() != userIds.size()) {
+            // 프로젝트 멤버가 아닌 userId들 식별
+            Set<Long> notMembers = new HashSet<>(userIds);
+            // 요청 들어온 Ids에서 검증된 프로젝트 멤버 Ids 제거하여 멤버 아닌 사용자 식별
+            notMembers.removeAll(projectMemberIds);
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "NOT_PROJECT_MEMBER",
+                    "프로젝트 멤버가 아닌 사용자 포함: " + notMembers);
+        }
+
+        // EventMember 일괄 저장
+        Event finalEvent = event;
+        List<EventMember> savedMembers = eventMemberRepository.saveAll(
+                projectMemberIds.stream()
+                        .map(uid -> EventMember.of(finalEvent, userRepository.getReferenceById(uid)))
+                        .toList()
+        );
+
+        List<Long> memberUserIds = savedMembers.stream()
+                .map(em -> em.getUser().getId())
+                .toList();
+
         return EventCreateResponse.builder()
                 .id(event.getId())
                 .projectId(project.getId())
@@ -96,6 +136,7 @@ public class EventService {
                 .createdAt(event.getCreatedAt())
                 .offsetMinutes(event.getOffsetMinutes())
                 .color(event.getColor())
+                .memberUserIds(memberUserIds)
                 .build();
     }
 
