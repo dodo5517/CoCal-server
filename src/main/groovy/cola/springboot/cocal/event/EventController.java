@@ -49,21 +49,27 @@ public class EventController {
     @GetMapping("/{id}")
     public ResponseEntity<ApiResponse<EventResponse>> getEvent(
             @PathVariable("id") Long id,
-            @PathVariable("projectId") Long projectId
+            @PathVariable("projectId") Long projectId,
+            Authentication authentication,
+            HttpServletRequest httpReq
     ) {
+        Long userId = Long.parseLong(authentication.getName());
         // 서비스에서 이벤트 조회
-        Event event = eventService.getEvent(id, projectId);
+        EventResponse event = eventService.getEvent(id, projectId, userId);
+        return ResponseEntity.ok(ApiResponse.ok(event, httpReq.getRequestURI()));
+    }
 
-        // DTO 변환
-        EventResponse eventResponse = EventResponse.fromEntity(event);
-
-        // ApiResponse로 감싸기
-        ApiResponse<EventResponse> response = ApiResponse.<EventResponse>builder()
-                .success(true)
-                .data(eventResponse)
-                .error(null)
-                .build();
-
-        return ResponseEntity.ok(response);
+    // 이벤트 수정
+    @PutMapping("/{id}")
+    public ResponseEntity<ApiResponse<EventResponse>> updateEvent(
+            @PathVariable("id") Long id,
+            @PathVariable("projectId") Long projectId,
+            @Valid @RequestBody EventCreateRequest request,
+            Authentication authentication,
+            HttpServletRequest httpReq
+    ) {
+        Long userId = Long.parseLong(authentication.getName());
+        EventResponse data = eventService.updateEvent(id, projectId, request, userId);
+        return ResponseEntity.ok(ApiResponse.ok(data, httpReq.getRequestURI()));
     }
 }
