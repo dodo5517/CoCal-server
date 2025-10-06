@@ -4,6 +4,7 @@ import cola.springboot.cocal.common.api.ApiResponse;
 import cola.springboot.cocal.common.exception.BusinessException;
 import cola.springboot.cocal.event.dto.EventCreateRequest;
 import cola.springboot.cocal.event.dto.EventCreateResponse;
+import cola.springboot.cocal.event.dto.EventResponse;
 import cola.springboot.cocal.user.User;
 import cola.springboot.cocal.user.UserRepository;
 import jakarta.servlet.http.HttpServletRequest;
@@ -22,6 +23,7 @@ public class EventController {
     private final EventService eventService;
     private final UserRepository userRepository;
 
+    // 이벤트 생성
     @PostMapping()
     public ResponseEntity<ApiResponse<EventCreateResponse>> createEvent(
             @PathVariable("projectId") Long projectId,
@@ -41,5 +43,27 @@ public class EventController {
 
         EventCreateResponse data = eventService.createEvent(projectId, userId, email, request);
         return ResponseEntity.ok(ApiResponse.ok(data, httpReq.getRequestURI()));
+    }
+
+    // 이벤트(개별) 조회
+    @GetMapping("/{id}")
+    public ResponseEntity<ApiResponse<EventResponse>> getEvent(
+            @PathVariable("id") Long id,
+            @PathVariable("projectId") Long projectId
+    ) {
+        // 서비스에서 이벤트 조회
+        Event event = eventService.getEvent(id, projectId);
+
+        // DTO 변환
+        EventResponse eventResponse = EventResponse.fromEntity(event);
+
+        // ApiResponse로 감싸기
+        ApiResponse<EventResponse> response = ApiResponse.<EventResponse>builder()
+                .success(true)
+                .data(eventResponse)
+                .error(null)
+                .build();
+
+        return ResponseEntity.ok(response);
     }
 }
