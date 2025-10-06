@@ -1,0 +1,45 @@
+package cola.springboot.cocal.event;
+
+import cola.springboot.cocal.common.api.ApiResponse;
+import cola.springboot.cocal.common.exception.BusinessException;
+import cola.springboot.cocal.event.dto.EventCreateRequest;
+import cola.springboot.cocal.event.dto.EventCreateResponse;
+import cola.springboot.cocal.user.User;
+import cola.springboot.cocal.user.UserRepository;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequiredArgsConstructor
+@RequestMapping("/api/projects/{projectId}/events")
+public class EventController {
+
+    private final EventService eventService;
+    private final UserRepository userRepository;
+
+    @PostMapping()
+    public ResponseEntity<ApiResponse<EventCreateResponse>> createEvent(
+            @PathVariable("projectId") Long projectId,
+            @Valid @RequestBody EventCreateRequest request,
+            Authentication authentication,
+            HttpServletRequest httpReq // 로그인된 사용자 ID
+    ) {
+        Long userId = Long.parseLong(authentication.getName());
+
+        String email = userRepository.findById(userId)
+                .map(User::getEmail)
+                .orElseThrow(() -> new BusinessException(
+                        HttpStatus.NOT_FOUND,
+                        "USER_NOT_FOUND",
+                        "사용자를 찾을 수 없습니다."
+                ));
+
+        EventCreateResponse data = eventService.createEvent(projectId, userId, email, request);
+        return ResponseEntity.ok(ApiResponse.ok(data, httpReq.getRequestURI()));
+    }
+}
