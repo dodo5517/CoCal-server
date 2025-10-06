@@ -58,6 +58,38 @@ public class ProjectMemberService {
         pm.setUpdatedAt(LocalDateTime.now());
         projectMemberRepository.save(pm);
 
-        return String.format("'%s'님을 '%s'에서 추방했습니다.", targetUser.get().getName(), project.getName());
+        return String.format("'%s' 님을 '%s' 프로젝트에서 추방했습니다.", targetUser.get().getName(), project.getName());
+    }
+
+    // 프로젝트에서 나가기(자진 탈퇴)
+    @Transactional
+    public String leaveProject(Long actorUserId, Long projectId) {
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new BusinessException(
+                        HttpStatus.NOT_FOUND, "PROJECT_NOT_FOUND", "존재하지 않는 프로젝트입니다."
+                ));
+        Optional<User> targetUser = Optional.ofNullable(userRepository.findById(actorUserId)
+                .orElseThrow(() -> new BusinessException(
+                        HttpStatus.NOT_FOUND,
+                        "USER_NOT_FOUND",
+                        "사용자를 찾을 수 없습니다."
+                )));
+        ProjectMember pm = projectMemberRepository.findOne(projectId, actorUserId)
+                .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "MEMBER_NOT_FOUND", "프로젝트 멤버가 아닙니다."));
+
+        if (pm.getRole() == ProjectMember.MemberRole.OWNER) {
+            long otherActiveOwners = projectMemberRepository.countActiveOwners(projectId) - 1; // 자신 제외
+            if (otherActiveOwners <= 0) {
+                throw new BusinessException(
+                        HttpStatus.CONFLICT, "OWNER_ONLY_MEMBER",
+                        "유일 소유자는 먼저 소유권 이전 또는 프로젝트를 정리(삭제)해야 합니다.");
+            }
+        }
+
+        pm.setStatus(ProjectMember.MemberStatus.LEFT);
+        pm.setUpdatedAt(LocalDateTime.now());
+        projectMemberRepository.save(pm);
+
+        return String.format("'%s' 프로젝트에서 나왔습니다.", project.getName());
     }
 }
