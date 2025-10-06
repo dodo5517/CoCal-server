@@ -28,8 +28,8 @@ public class Event {
     @JoinColumn(name = "project_id", nullable = false)
     private Project project;
 
-    @Column(name = "url_id", nullable = false)
-    private Long urlId;
+    @Column(name = "url", length = 2048)
+    private String url;
 
     @Column(nullable = false, length = 200)
     private String title;
@@ -47,8 +47,9 @@ public class Event {
     private boolean allDay = false;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 10)
+    @Column(name = "visibility", nullable = false, length = 10)
     private Visibility visibility = Visibility.PUBLIC;
+
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "author_id", nullable = false)
