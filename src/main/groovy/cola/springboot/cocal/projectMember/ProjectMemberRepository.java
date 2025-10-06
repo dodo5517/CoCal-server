@@ -28,4 +28,11 @@ public interface ProjectMemberRepository extends JpaRepository<ProjectMember, Lo
       where pm.project.id = :projectId and pm.user.id = :userId
     """)
     Optional<ProjectMember> findOne(Long projectId, Long userId);
+
+    // status=ACTIVE인 OWNER 유저 조회
+    @Query("""
+      select count(pm) from ProjectMember pm
+      where pm.project.id = :projectId and pm.role = 'OWNER' and pm.status = 'ACTIVE'
+    """)
+    long countActiveOwners(Long projectId);
 }
