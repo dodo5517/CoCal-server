@@ -175,7 +175,7 @@ public class InviteService {
                 projectId, inviterUserId, ProjectMember.MemberRole.ADMIN);
         if (!isOwner && !isAdmin) {
             throw new BusinessException(HttpStatus.FORBIDDEN, "INVITE_NOT_ALLOWED",
-                    "프로젝트의 소유자 또는 관리자만 초대 링크를 생성/조회할 수 있습니다.");
+                    "프로젝트의 소유자 또는 관리자만 초대 링크를 생성할 수 있습니다.");
         }
 
         // 활성 링크 있으면 재사용

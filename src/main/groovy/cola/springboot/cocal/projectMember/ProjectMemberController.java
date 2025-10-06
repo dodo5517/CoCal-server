@@ -24,8 +24,7 @@ public class ProjectMemberController {
             HttpServletRequest httpReq
     ) {
         Long actorUserId = Long.parseLong(auth.getName());
-        memberService.kick(actorUserId, projectId, userId);
-        Map<String, String> data = Map.of("message", "팀원을 추방했습니다.");
+        Map<String, String> data = Map.of("message", memberService.kick(actorUserId, projectId, userId));
         return ResponseEntity.ok(ApiResponse.ok(data, httpReq.getRequestURI()));
     }
 }

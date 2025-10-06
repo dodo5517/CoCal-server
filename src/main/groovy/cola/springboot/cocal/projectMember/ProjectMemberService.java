@@ -22,7 +22,7 @@ public class ProjectMemberService {
 
     // 팀원 강제 추방
     @Transactional
-    public void kick(Long actorUserId, Long projectId, Long targetUserId) {
+    public String kick(Long actorUserId, Long projectId, Long targetUserId) {
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new BusinessException(
                         HttpStatus.NOT_FOUND, "PROJECT_NOT_FOUND", "존재하지 않는 프로젝트입니다."
@@ -56,5 +56,8 @@ public class ProjectMemberService {
 
         pm.setStatus(ProjectMember.MemberStatus.KICKED);
         pm.setUpdatedAt(LocalDateTime.now());
+        projectMemberRepository.save(pm);
+
+        return String.format("'%s'님을 '%s'에서 추방했습니다.", targetUser.get().getName(), project.getName());
     }
 }
