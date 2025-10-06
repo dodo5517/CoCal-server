@@ -100,6 +100,21 @@ public class EventService {
                 .offsetMinutes(event.getOffsetMinutes())
                 .color(event.getColor())
                 .build();
+    }
 
+    // 이벤트(개별) 조회
+    @Transactional(readOnly = true)
+    public Event getEvent(Long id, Long projectId) {
+        // 프로젝트 확인
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new BusinessException(
+                        HttpStatus.NOT_FOUND, "PROJECT_NOT_FOUND", "프로젝트를 찾을 수 없습니다."
+                ));
+
+        // 이벤트 확인
+        return eventRepository.findByIdAndProjectId(id, projectId)
+                .orElseThrow(() -> new BusinessException(
+                        HttpStatus.NOT_FOUND, "EVENT_NOT_FOUND", "이벤트를 찾을 수 없습니다."
+                ));
     }
 }
