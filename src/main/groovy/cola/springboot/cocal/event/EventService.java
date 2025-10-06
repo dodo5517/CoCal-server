@@ -3,12 +3,14 @@ package cola.springboot.cocal.event;
 import cola.springboot.cocal.common.exception.BusinessException;
 import cola.springboot.cocal.event.dto.EventCreateRequest;
 import cola.springboot.cocal.event.dto.EventCreateResponse;
+import cola.springboot.cocal.event.dto.EventResponse;
 import cola.springboot.cocal.invite.InviteRepository;
 import cola.springboot.cocal.project.Project;
 import cola.springboot.cocal.project.ProjectRepository;
+import cola.springboot.cocal.projectMember.ProjectMember;
+import cola.springboot.cocal.projectMember.ProjectMemberRepository;
 import cola.springboot.cocal.user.User;
 import cola.springboot.cocal.user.UserRepository;
-import com.sun.jdi.request.EventRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -24,7 +26,7 @@ public class EventService {
     private final EventRepository eventRepository;
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
-    private final InviteRepository inviteRepository;
+    private final ProjectMemberRepository projectMemberRepository;
 
     // event(일정) 생성
     @Transactional
@@ -35,15 +37,11 @@ public class EventService {
                         HttpStatus.NOT_FOUND, "PROJECT_NOT_FOUND", "프로젝트를 찾을 수 없습니다."
                 ));
 
-        // 권한 확인 (owner 또는 accepted 멤버만 가능)
-        boolean isOwner = project.getOwner().getId().equals(userId);
-        boolean isAcceptedInvitee = inviteRepository.existsAcceptedInvite(projectId, email);
-
-        if (!isOwner && !isAcceptedInvitee) {
+        // 프로젝트 멤버 여부 확인 (OWNER 또는 MEMBER 상태가 ACTIVE)
+        boolean isMember = projectMemberRepository.existsByProjectIdAndUserIdAndStatus(projectId, userId, ProjectMember.MemberStatus.ACTIVE);
+        if (!isMember) {
             throw new BusinessException(
-                    HttpStatus.FORBIDDEN,
-                    "FORBIDDEN",
-                    "프로젝트 접근 권한이 없습니다."
+                    HttpStatus.FORBIDDEN, "FORBIDDEN", "프로젝트 멤버만 이벤트를 생성할 수 있습니다."
             );
         }
 
@@ -104,7 +102,7 @@ public class EventService {
 
     // 이벤트(개별) 조회
     @Transactional(readOnly = true)
-    public Event getEvent(Long id, Long projectId) {
+    public EventResponse getEvent(Long id, Long projectId, Long userId) {
         // 프로젝트 확인
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new BusinessException(
@@ -112,9 +110,66 @@ public class EventService {
                 ));
 
         // 이벤트 확인
-        return eventRepository.findByIdAndProjectId(id, projectId)
+        Event event =  eventRepository.findByIdAndProjectId(id, projectId)
                 .orElseThrow(() -> new BusinessException(
                         HttpStatus.NOT_FOUND, "EVENT_NOT_FOUND", "이벤트를 찾을 수 없습니다."
                 ));
+
+        // 프로젝트 멤버 여부 확인 (OWNER 또는 MEMBER 상태가 ACTIVE)
+        boolean isMember = projectMemberRepository.existsByProjectIdAndUserIdAndStatus(projectId, userId, ProjectMember.MemberStatus.ACTIVE);
+        if (!isMember) {
+            throw new BusinessException(
+                    HttpStatus.FORBIDDEN, "FORBIDDEN", "프로젝트 멤버만 이벤트를 조회할 수 있습니다."
+            );
+        }
+
+        // DTO로 변환 후 반환
+        return EventResponse.fromEntity(event);
+    }
+
+    // 이벤트 수정
+    @Transactional
+    public EventResponse updateEvent(Long id, Long projectId, EventCreateRequest request, Long userId) {
+        Event event = eventRepository.findByIdAndProjectId(id, projectId)
+                .orElseThrow(() -> new BusinessException(
+                        HttpStatus.NOT_FOUND, "EVENT_NOT_FOUND", "이벤트를 찾을 수 없습니다."
+                ));
+
+        // 프로젝트 멤버 여부 확인 (OWNER 또는 MEMBER 상태가 ACTIVE)
+        boolean isMember = projectMemberRepository.existsByProjectIdAndUserIdAndStatus(projectId, userId, ProjectMember.MemberStatus.ACTIVE);
+        if (!isMember) {
+            throw new BusinessException(
+                    HttpStatus.FORBIDDEN, "FORBIDDEN", "프로젝트 멤버만 이벤트를 수정할 수 있습니다."
+            );
+        }
+
+        // 날짜 / 시간 병합
+        LocalDateTime startAt = LocalDateTime.of(
+                LocalDate.parse(request.getStartDate()),
+                LocalTime.parse(request.getStartTime())
+        );
+
+        LocalDateTime endAt = LocalDateTime.of(
+                LocalDate.parse(request.getEndDate()),
+                LocalTime.parse(request.getEndTime())
+        );
+
+        event.setTitle(request.getTitle());
+        event.setDescription(request.getDescription());
+        event.setStartAt(startAt);
+        event.setEndAt(endAt);
+        event.setAllDay(request.isAllDay());
+        event.setVisibility(Event.Visibility.valueOf(request.getVisibility()));
+        event.setLocation(request.getLocation());
+        event.setUrl(request.getUrl());
+        event.setOffsetMinutes(request.getOffsetMinutes());
+        event.setColor(request.getColor());
+        event.setUpdatedAt(LocalDateTime.now());
+
+        // DB 반영
+        event = eventRepository.save(event);
+
+        return EventResponse.fromEntity(event);
+
     }
 }

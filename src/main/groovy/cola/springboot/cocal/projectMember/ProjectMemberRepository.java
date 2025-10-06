@@ -10,6 +10,8 @@ import java.util.Optional;
 public interface ProjectMemberRepository extends JpaRepository<ProjectMember, Long> {
     Boolean existsByProjectIdAndUserId(Long projectId, Long userId);
     Boolean existsByProjectIdAndUserIdAndRole(Long projectId, Long userId, ProjectMember.MemberRole role);
+    // 특정 프로젝트에 특정 사용자가 멤버인지, 상태까지 ACTIVE인지 확인
+    boolean existsByProjectIdAndUserIdAndStatus(Long projectId, Long userId, ProjectMember.MemberStatus status);
 
     // 멤버 중 status=ACTIVE인 유저 조회
     @Query("""
