@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface ProjectMemberRepository extends JpaRepository<ProjectMember, Long> {
     Boolean existsByProjectIdAndUserId(Long projectId, Long userId);
@@ -20,4 +21,11 @@ public interface ProjectMemberRepository extends JpaRepository<ProjectMember, Lo
         order by u.name asc
     """)
     List<ProjectMember> findActiveMembersWithUser(@Param("projectId") Long projectId);
+
+    // 프로젝트의 멤버 찾기
+    @Query("""
+      select pm from ProjectMember pm
+      where pm.project.id = :projectId and pm.user.id = :userId
+    """)
+    Optional<ProjectMember> findOne(Long projectId, Long userId);
 }
