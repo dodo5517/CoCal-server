@@ -2,6 +2,7 @@ package cola.springboot.cocal.event.dto;
 
 import cola.springboot.cocal.event.Event;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -10,6 +11,7 @@ import java.time.LocalDateTime;
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
+@Builder
 public class EventResponse {
     private Long id;
     private Long projectId;
