@@ -4,8 +4,10 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 public interface ProjectMemberRepository extends JpaRepository<ProjectMember, Long> {
     Boolean existsByProjectIdAndUserId(Long projectId, Long userId);
@@ -37,4 +39,15 @@ public interface ProjectMemberRepository extends JpaRepository<ProjectMember, Lo
       where pm.project.id = :projectId and pm.role = 'OWNER' and pm.status = 'ACTIVE'
     """)
     long countActiveOwners(Long projectId);
+
+    // 유저Id list가 프로젝트 멤버인지 확인, 상태=ACTIVE
+    @Query("""
+        select pm.user.id
+        from ProjectMember pm
+        where pm.project.id = :projectId
+          and pm.user.id in :userIds
+          and pm.status = 'ACTIVE'
+    """)
+    Set<Long> findMemberUserIdsInProject(@Param("projectId") Long projectId,
+                                         @Param("userIds") Collection<Long> userIds);
 }
