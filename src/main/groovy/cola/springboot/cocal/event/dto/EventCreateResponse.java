@@ -3,6 +3,7 @@ package cola.springboot.cocal.event.dto;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 @Setter
@@ -24,4 +25,5 @@ public class EventCreateResponse {
     private LocalDateTime createdAt;
     private int offsetMinutes;
     private String color;
+    private List<Long> memberUserIds;
 }

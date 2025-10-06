@@ -2,6 +2,8 @@ package cola.springboot.cocal.event.dto;
 
 import lombok.*;
 
+import java.util.List;
+
 @Getter
 @Setter
 @NoArgsConstructor
@@ -21,4 +23,5 @@ public class EventCreateRequest {
     private String url;
     private int offsetMinutes;
     private String color;
+    private List<Long> memberUserIds;
 }
