@@ -72,4 +72,18 @@ public class EventController {
         EventResponse data = eventService.updateEvent(id, projectId, request, userId);
         return ResponseEntity.ok(ApiResponse.ok(data, httpReq.getRequestURI()));
     }
+
+    // 이벤트 삭제
+    @DeleteMapping("/{id}")
+    public ResponseEntity<ApiResponse<String>> deleteEvent(
+            @PathVariable("id") Long id,
+            @PathVariable("projectId") Long projectId,
+            Authentication authentication,
+            HttpServletRequest httpReq
+    ) {
+        Long userId = Long.parseLong(authentication.getName());
+        eventService.deleteEvent(id, projectId, userId);
+
+        return ResponseEntity.ok(ApiResponse.ok("이벤트가 삭제되었습니다.", httpReq.getRequestURI()));
+    }
 }
