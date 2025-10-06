@@ -4,7 +4,6 @@ import cola.springboot.cocal.common.exception.BusinessException;
 import cola.springboot.cocal.event.dto.EventCreateRequest;
 import cola.springboot.cocal.event.dto.EventCreateResponse;
 import cola.springboot.cocal.event.dto.EventResponse;
-import cola.springboot.cocal.invite.InviteRepository;
 import cola.springboot.cocal.project.Project;
 import cola.springboot.cocal.project.ProjectRepository;
 import cola.springboot.cocal.projectMember.ProjectMember;
@@ -170,6 +169,32 @@ public class EventService {
         event = eventRepository.save(event);
 
         return EventResponse.fromEntity(event);
+    }
 
+    // 이벤트 삭제
+    @Transactional
+    public void deleteEvent(Long id, Long projectId, Long userId) {
+        // 프로젝트 확인
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new BusinessException(
+                        HttpStatus.NOT_FOUND, "PROJECT_NOT_FOUND", "프로젝트를 찾을 수 없습니다."
+                ));
+
+        // 이벤트 확인
+        Event event =  eventRepository.findByIdAndProjectId(id, projectId)
+                .orElseThrow(() -> new BusinessException(
+                        HttpStatus.NOT_FOUND, "EVENT_NOT_FOUND", "이벤트를 찾을 수 없습니다."
+                ));
+
+        // 프로젝트 멤버 여부 확인 (OWNER 또는 MEMBER 상태가 ACTIVE)
+        boolean isMember = projectMemberRepository.existsByProjectIdAndUserIdAndStatus(projectId, userId, ProjectMember.MemberStatus.ACTIVE);
+        if (!isMember) {
+            throw new BusinessException(
+                    HttpStatus.FORBIDDEN, "FORBIDDEN", "프로젝트 멤버만 이벤트를 삭제할 수 있습니다."
+            );
+        }
+
+        // 이벤트 삭제
+        eventRepository.delete(event);
     }
 }
