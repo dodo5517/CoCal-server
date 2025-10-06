@@ -27,4 +27,16 @@ public class ProjectMemberController {
         Map<String, String> data = Map.of("message", memberService.kick(actorUserId, projectId, userId));
         return ResponseEntity.ok(ApiResponse.ok(data, httpReq.getRequestURI()));
     }
+
+    // 프로젝트 나가기(자진 탈퇴)
+    @PostMapping("/leave")
+    public ResponseEntity<ApiResponse<Map<String, String>>> leave(
+            @PathVariable Long projectId,
+            Authentication auth,
+            HttpServletRequest httpReq) {
+
+        Long actorUserId = Long.parseLong(auth.getName());
+        Map<String, String> data = Map.of("message", memberService.leaveProject(actorUserId, projectId));
+        return ResponseEntity.ok(ApiResponse.ok(data, httpReq.getRequestURI()));
+    }
 }
