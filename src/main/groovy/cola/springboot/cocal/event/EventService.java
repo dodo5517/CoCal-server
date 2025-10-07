@@ -163,8 +163,11 @@ public class EventService {
             );
         }
 
-        // DTO로 변환 후 반환
-        return EventResponse.fromEntity(event);
+        // 이벤트 참가자 조회
+        List<User> eventMembers = eventMemberRepository.findUsersByEventId(id);
+
+        // EventResponse에 members와 memberUserIds 둘 다 포함
+        return EventResponse.fromEntity(event, eventMembers);
     }
 
     // 이벤트 수정
@@ -209,7 +212,10 @@ public class EventService {
         // DB 반영
         event = eventRepository.save(event);
 
-        return EventResponse.fromEntity(event);
+        // 이벤트 참가자 조회
+        List<User> eventMembers = eventMemberRepository.findUsersByEventId(id);
+
+        return EventResponse.fromEntity(event, eventMembers);
     }
 
     // 이벤트 삭제
