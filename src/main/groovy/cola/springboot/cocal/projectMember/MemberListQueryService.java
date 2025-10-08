@@ -29,7 +29,7 @@ public class MemberListQueryService {
                 .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "PROJECT_NOT_FOUND", "존재하지 않는 프로젝트입니다."));
 
         // 멤버인지 확인
-        Boolean exist = projectMemberRepository.existsByProjectIdAndUserId(projectId, requesterUserId);
+        Boolean exist = projectMemberRepository.existsByProjectIdAndUserIdAndStatus(projectId, requesterUserId, ProjectMember.MemberStatus.ACTIVE);
         if (!exist) {
             throw new BusinessException(HttpStatus.FORBIDDEN, "NO_MEMBERSHIP", "프로젝트 멤버가 아닙니다.");
         }

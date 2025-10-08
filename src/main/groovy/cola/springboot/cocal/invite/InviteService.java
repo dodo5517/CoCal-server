@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.w3c.dom.views.AbstractView;
 
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
@@ -95,7 +96,7 @@ public class InviteService {
                         "USER_NOT_FOUND",
                         "사용자를 찾을 수 없습니다."
                 )));
-        boolean alreadyMember = projectMemberRepository.existsByProjectIdAndUserId(projectId, targetUser.get().getId());
+        boolean alreadyMember = projectMemberRepository.existsByProjectIdAndUserIdAndStatus(projectId, targetUser.get().getId(), ProjectMember.MemberStatus.ACTIVE);
         if (alreadyMember) {
             throw new BusinessException(HttpStatus.CONFLICT, "ALREADY_MEMBER", "이미 해당 프로젝트의 멤버입니다.");
         }
@@ -216,7 +217,7 @@ public class InviteService {
         }
 
         // 이미 멤버인지 확인
-        boolean alreadyMember = projectMemberRepository.existsByProjectIdAndUserId(invite.getProject().getId(), userId);
+        boolean alreadyMember = projectMemberRepository.existsByProjectIdAndUserIdAndStatus(invite.getProject().getId(), userId, ProjectMember.MemberStatus.ACTIVE);
         if (alreadyMember) {
             throw new BusinessException(HttpStatus.CONFLICT, "ALREADY_MEMBER", "이미 해당 프로젝트의 멤버입니다.");
         }
@@ -248,7 +249,7 @@ public class InviteService {
         }
 
         // 이미 멤버인지 확인
-        boolean alreadyMember = projectMemberRepository.existsByProjectIdAndUserId(invite.getProject().getId(), userId);
+        boolean alreadyMember = projectMemberRepository.existsByProjectIdAndUserIdAndStatus(invite.getProject().getId(), userId, ProjectMember.MemberStatus.ACTIVE);
         if (alreadyMember) {
             throw new BusinessException(HttpStatus.CONFLICT, "ALREADY_MEMBER", "이미 해당 프로젝트의 멤버입니다.");
         }
@@ -342,7 +343,7 @@ public class InviteService {
                 ));
 
         // 이미 멤버면 멱등 OK
-        if (!projectMemberRepository.existsByProjectIdAndUserId(projectId, userId)) {
+        if (!projectMemberRepository.existsByProjectIdAndUserIdAndStatus(projectId, userId, ProjectMember.MemberStatus.ACTIVE)) {
             ProjectMember member = ProjectMember.builder()
                     .project(inv.getProject())
                     .user(user)
