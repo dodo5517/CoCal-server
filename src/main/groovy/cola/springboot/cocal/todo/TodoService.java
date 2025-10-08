@@ -20,6 +20,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class TodoService {
@@ -104,5 +106,47 @@ public class TodoService {
 
         throw new BusinessException(HttpStatus.BAD_REQUEST, "INVALID_TYPE", "유효하지 않은 TODO 타입입니다. PRIVATE 또는 EVENT만 가능합니다.");
     }
+
+    @Transactional(readOnly = true)
+    public TodoResponse getPrivateTodo(Long projectId, Long userId, Long todoId) {
+        // 사용자 확인
+        userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", "사용자를 찾을 수 없습니다."));
+
+        // TODO 찾기
+        PrivateTodo todo = privateTodoRepository.findById(todoId)
+                .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "TODO_NOT_FOUND", "TODO를 찾을 수 없습니다."));
+
+        // 접근 권한 확인
+        if (!todo.getProjectId().equals(projectId) || !todo.getOwnerId().equals(userId)) {
+            throw new BusinessException(HttpStatus.FORBIDDEN, "FORBIDDEN", "본인 TODO만 조회할 수 있습니다.");
+        }
+
+        return TodoResponse.fromPrivateTodo(todo);
+    }
+
+    @Transactional(readOnly = true)
+    public TodoResponse getEventTodo(Long projectId, Long userId, Long eventId, Long todoId) {
+        // 프로젝트 멤버 확인
+        boolean isMember = projectMemberRepository.existsByProjectIdAndUserIdAndStatus(projectId, userId, ProjectMember.MemberStatus.ACTIVE);
+        if (!isMember) {
+            throw new BusinessException(HttpStatus.FORBIDDEN, "FORBIDDEN", "프로젝트 멤버만 조회할 수 있습니다.");
+        }
+
+        // 이벤트 TODO 조회
+        EventTodo todo = eventTodoRepository.findById(todoId)
+                .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "TODO_NOT_FOUND", "TODO를 찾을 수 없습니다."));
+
+        // 이벤트와 프로젝트 일치 여부 확인
+        Event event = eventRepository.findById(eventId)
+                .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "EVENT_NOT_FOUND", "이벤트를 찾을 수 없습니다."));
+        if (!event.getProject().getId().equals(projectId) || !todo.getEventId().equals(eventId)) {
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "INVALID_RELATION", "이 TODO는 해당 이벤트에 속하지 않습니다.");
+        }
+
+        return TodoResponse.fromEventTodo(todo);
+    }
+
+
 
 }
