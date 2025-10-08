@@ -38,7 +38,6 @@ public class TodoController {
 
     /*
      * TODO 조회
-     * GET /api/projects/{projectId}/todos
      */
     // 개인 TODO 단건 조회
     @GetMapping("/todos/{todoId}")
@@ -67,5 +66,26 @@ public class TodoController {
         return ResponseEntity.ok(ApiResponse.ok(response, httpReq.getRequestURI()));
     }
 
+    /**
+     * TODO 수정
+     * PUT /api/projects/{projectId}/todos/{todoId}
+     */
+    @PutMapping("/todos/{todoId}")
+    public ResponseEntity<ApiResponse<TodoResponse>> updateTodo(
+            @PathVariable("projectId") Long projectId,
+            @PathVariable("todoId") Long todoId,
+            @Valid @RequestBody TodoRequest request,
+            Authentication authentication,
+            HttpServletRequest httpReq
+    ) {
+        // 로그인된 사용자 ID
+        Long userId = Long.parseLong(authentication.getName());
+
+        // Todo 수정 서비스 호출
+        TodoResponse response = todoService.updateTodo(projectId, userId, todoId, request);
+
+        // Response 반환
+        return ResponseEntity.ok(ApiResponse.ok(response, httpReq.getRequestURI()));
+    }
 
 }
