@@ -65,7 +65,7 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.ok(data, httpReq.getRequestURI()));
     }
 
-    // 유저 프로필 사진
+    // 유저 프로필 사진 수정/추가
     @PutMapping("/profile-image")
     public ResponseEntity<ApiResponse<Map<String, Object>>> uploadProfileImage(Authentication authentication,
                                                                                HttpServletRequest httpReq,
