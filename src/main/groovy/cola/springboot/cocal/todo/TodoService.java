@@ -224,4 +224,49 @@ public class TodoService {
         throw new BusinessException(HttpStatus.BAD_REQUEST, "INVALID_TYPE", "유효하지 않은 TODO 타입입니다. PRIVATE 또는 EVENT만 가능합니다.");
     }
 
+    /*
+        TODO 삭제
+    */
+    @Transactional
+    public void deleteTodo(Long projectId, Long userId, Long todoId, String type, Long eventId) {
+        if ("PRIVATE".equalsIgnoreCase(type)) {
+            // Private TODO 조회
+            PrivateTodo todo = privateTodoRepository.findById(todoId)
+                    .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "TODO_NOT_FOUND", "TODO를 찾을 수 없습니다."));
+
+            // 접근 권한 확인 (본인만 삭제 가능)
+            if (!todo.getProjectId().equals(projectId) || !todo.getOwnerId().equals(userId)) {
+                throw new BusinessException(HttpStatus.FORBIDDEN, "FORBIDDEN", "본인 TODO만 삭제할 수 있습니다.");
+            }
+
+            privateTodoRepository.delete(todo);
+        }
+        else if ("EVENT".equalsIgnoreCase(type)) {
+            if (eventId == null) {
+                throw new BusinessException(HttpStatus.BAD_REQUEST, "EVENT_ID_REQUIRED", "이벤트 ID가 필요합니다.");
+            }
+
+            // Event TODO 조회
+            EventTodo todo = eventTodoRepository.findById(todoId)
+                    .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "TODO_NOT_FOUND", "TODO를 찾을 수 없습니다."));
+
+            // 프로젝트 멤버 확인
+            boolean isMember = projectMemberRepository.existsByProjectIdAndUserIdAndStatus(projectId, userId, ProjectMember.MemberStatus.ACTIVE);
+            if (!isMember) {
+                throw new BusinessException(HttpStatus.FORBIDDEN, "FORBIDDEN", "프로젝트 멤버만 삭제할 수 있습니다.");
+            }
+
+            // 이벤트와 프로젝트 일치 확인
+            Event event = eventRepository.findById(eventId)
+                    .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "EVENT_NOT_FOUND", "이벤트를 찾을 수 없습니다."));
+            if (!event.getProject().getId().equals(projectId) || !todo.getEventId().equals(eventId)) {
+                throw new BusinessException(HttpStatus.BAD_REQUEST, "INVALID_RELATION", "이 TODO는 해당 이벤트에 속하지 않습니다.");
+            }
+
+            eventTodoRepository.delete(todo);
+        }
+        else {
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "INVALID_TYPE", "유효하지 않은 TODO 타입입니다. PRIVATE 또는 EVENT만 가능합니다.");
+        }
+    }
 }
