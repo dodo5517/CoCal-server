@@ -92,4 +92,36 @@ public class MemoService {
 
         return page;
     }
+    
+    // 메모 수정
+    @Transactional
+    public MemoResponse updateMemo(Long projectId, Long memoId, Long requesterUserId, MemoCreateRequest req) {
+        // 프로젝트 멤버 권한 확인
+        boolean isMember = projectMemberRepository
+                .existsByProjectIdAndUserIdAndStatus(projectId, requesterUserId, ProjectMember.MemberStatus.ACTIVE);
+        if (!isMember) {
+            throw new BusinessException(HttpStatus.FORBIDDEN, "FORBIDDEN", "프로젝트 멤버만 수정할 수 있습니다.");
+        }
+
+        // 대상 메모 로드
+        Memo memo = memoRepository.findByIdAndProjectIdWithAuthor(memoId, projectId)
+                .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "MEMO_NOT_FOUND", "메모를 찾을 수 없습니다."));
+
+        // 수정 권한: 작성자 본인 or OWNER/ADMIN
+        boolean isAuthor = (memo.getAuthor() != null) && memo.getAuthor().getId().equals(requesterUserId);
+        boolean isOwner = projectMemberRepository.existsByProjectIdAndUserIdAndRole(projectId, requesterUserId, ProjectMember.MemberRole.OWNER);
+        boolean isAdmin = projectMemberRepository.existsByProjectIdAndUserIdAndRole(projectId, requesterUserId, ProjectMember.MemberRole.ADMIN);
+        if (!(isAuthor || isOwner || isAdmin)) {
+            throw new BusinessException(HttpStatus.FORBIDDEN, "MEMO_UPDATE_NOT_ALLOWED", "수정 권한이 없습니다.");
+        }
+
+        // 변경
+        memo.setContent(req.getContent().trim());
+        memo.setMemoDate(req.getMemoDate());
+
+        // 저장 (DB 트리거가 updated_at을 갱신)
+        Memo saved = memoRepository.save(memo);
+
+        return MemoMapper.toResponse(saved, saved.getAuthor());
+    }
 }
