@@ -124,4 +124,35 @@ public class MemoService {
 
         return MemoMapper.toResponse(saved, saved.getAuthor());
     }
+
+    // 메모 삭제
+    @Transactional
+    public void deleteMemo(Long projectId, Long memoId, Long requesterUserId) {
+        // 프로젝트 멤버 여부
+        boolean isMember = projectMemberRepository
+                .existsByProjectIdAndUserIdAndStatus(projectId, requesterUserId, ProjectMember.MemberStatus.ACTIVE);
+        if (!isMember) {
+            throw new BusinessException(HttpStatus.FORBIDDEN, "FORBIDDEN", "프로젝트 멤버만 삭제할 수 있습니다.");
+        }
+
+        // 2) 대상 메모
+        Memo memo = memoRepository.findByIdAndProjectIdWithAuthor(memoId, projectId)
+                .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "MEMO_NOT_FOUND", "메모를 찾을 수 없습니다."));
+
+        User author = userRepository.findById(requesterUserId)
+                .orElseThrow(() -> new BusinessException(
+                        HttpStatus.NOT_FOUND, "USER_NOT_FOUND", "사용자를 찾을 수 없습니다."
+                ));
+
+        // 권한: 작성자 또는 OWNER/ADMIN
+        boolean isAuthor = (memo.getAuthor() != null) && memo.getAuthor().getId().equals(requesterUserId);
+        boolean isOwner = projectMemberRepository.existsByProjectIdAndUserIdAndRole(projectId, requesterUserId, ProjectMember.MemberRole.OWNER);
+        boolean isAdmin = projectMemberRepository.existsByProjectIdAndUserIdAndRole(projectId, requesterUserId, ProjectMember.MemberRole.ADMIN);
+        if (!(isAuthor || isOwner || isAdmin)) {
+            throw new BusinessException(HttpStatus.FORBIDDEN, "MEMO_DELETE_NOT_ALLOWED", "삭제 권한이 없습니다.");
+        }
+
+        // 삭제
+        memoRepository.delete(memo);
+    }
 }
