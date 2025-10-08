@@ -16,6 +16,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
@@ -60,4 +61,17 @@ public class MemoController {
         MemoResponse data = memoService.updateMemo(projectId, memoId, userId, req);
         return ResponseEntity.ok(ApiResponse.ok(data, httpReq.getRequestURI()));
     }
+
+    // 메모 삭제
+    @DeleteMapping("/{memoId}")
+    public ResponseEntity<ApiResponse<Map<String, String>>> deleteMemo(@PathVariable ("projectId") Long projectId,
+                                                                       @PathVariable ("memoId") Long memoId,
+                                                                       Authentication auth,
+                                                                       HttpServletRequest httpReq){
+        Long userId = Long.parseLong(auth.getName());
+        memoService.deleteMemo(projectId, memoId, userId);
+        Map<String, String> data = Map.of("message", "메모를 삭제했습니다.");
+        return ResponseEntity.ok(ApiResponse.ok(data, httpReq.getRequestURI()));
+    }
+
 }
