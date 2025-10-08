@@ -88,4 +88,22 @@ public class TodoController {
         return ResponseEntity.ok(ApiResponse.ok(response, httpReq.getRequestURI()));
     }
 
+    /**
+     * TODO 삭제
+     * DELETE /api/projects/{projectId}/todos/{todoId}
+     */
+    @DeleteMapping("/todos/{todoId}")
+    public ResponseEntity<ApiResponse<String>> deleteTodo(
+            @PathVariable("projectId") Long projectId,
+            @PathVariable("todoId") Long todoId,
+            @RequestParam("type") String type,        // PRIVATE or EVENT
+            @RequestParam(value = "eventId", required = false) Long eventId, // EVENT TODO일 때 필요
+            Authentication authentication,
+            HttpServletRequest httpReq
+    ) {
+        Long userId = Long.parseLong(authentication.getName());
+        todoService.deleteTodo(projectId, userId, todoId, type, eventId);
+
+        return ResponseEntity.ok(ApiResponse.ok("TODO가 삭제되었습니다.", httpReq.getRequestURI()));
+    }
 }
