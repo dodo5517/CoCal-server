@@ -12,9 +12,12 @@ import cola.springboot.cocal.user.User;
 import cola.springboot.cocal.user.UserRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Service
@@ -66,5 +69,27 @@ public class MemoService {
                 .build();
         Memo saved = memoRepository.save(memo);
         return MemoMapper.toResponse(saved, author);
+    }
+
+    // 메모 조회
+    @Transactional
+    public Page<MemoResponse> getMemosByDate(Long projectId, Long requesterUserId, LocalDate date, Pageable pageable) {
+        projectRepository.findById(projectId)
+                .orElseThrow(() -> new BusinessException(
+                        HttpStatus.NOT_FOUND, "PROJECT_NOT_FOUND", "프로젝트를 찾을 수 없습니다."
+                ));
+        // 권한: ACTIVE 멤버만
+        boolean isMember = projectMemberRepository
+                .existsByProjectIdAndUserIdAndStatus(projectId, requesterUserId, ProjectMember.MemberStatus.ACTIVE);
+
+        if (!isMember) {
+            throw new BusinessException(HttpStatus.FORBIDDEN, "FORBIDDEN", "프로젝트 멤버만 메모를 조회할 수 있습니다.");
+        }
+
+        Page<MemoResponse> page = memoRepository
+                .findByProjectAndDate(projectId, date, pageable)
+                .map(memo -> MemoMapper.toResponse(memo, memo.getAuthor()));
+
+        return page;
     }
 }
