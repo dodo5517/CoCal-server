@@ -1,8 +1,8 @@
 package cola.springboot.cocal.invite;
 
 import cola.springboot.cocal.common.exception.BusinessException;
-import cola.springboot.cocal.invite.dto.InviteListRequest;
-import cola.springboot.cocal.invite.dto.InviteListResponse;
+import cola.springboot.cocal.invite.DTO.InviteListRequest;
+import cola.springboot.cocal.invite.DTO.InviteListResponse;
 import cola.springboot.cocal.user.User;
 import cola.springboot.cocal.user.UserRepository;
 import lombok.RequiredArgsConstructor;

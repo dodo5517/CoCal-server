@@ -1,4 +1,4 @@
-package cola.springboot.cocal.invite.dto;
+package cola.springboot.cocal.invite.DTO;
 
 import cola.springboot.cocal.invite.Invite;
 import lombok.Builder;

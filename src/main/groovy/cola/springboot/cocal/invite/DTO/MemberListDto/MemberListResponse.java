@@ -1,4 +1,4 @@
-package cola.springboot.cocal.invite.dto.MemberListDto;
+package cola.springboot.cocal.invite.DTO.MemberListDto;
 
 import lombok.Builder;
 import lombok.Getter;

@@ -1,6 +1,5 @@
 package cola.springboot.cocal.project;
 
-import cola.springboot.cocal.invite.dto.MemberListDto.MemberRow;
 import lombok.*;
 
 import java.time.LocalDate;

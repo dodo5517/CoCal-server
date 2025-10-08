@@ -1,11 +1,11 @@
 package cola.springboot.cocal.invite;
 
 import cola.springboot.cocal.common.api.ApiResponse;
-import cola.springboot.cocal.invite.dto.InviteCreateRequest;
-import cola.springboot.cocal.invite.dto.InviteListRequest;
-import cola.springboot.cocal.invite.dto.InviteListResponse;
-import cola.springboot.cocal.invite.dto.InviteResponse;
-import cola.springboot.cocal.invite.dto.MemberListDto.MemberListResponse;
+import cola.springboot.cocal.invite.DTO.InviteCreateRequest;
+import cola.springboot.cocal.invite.DTO.InviteListRequest;
+import cola.springboot.cocal.invite.DTO.InviteListResponse;
+import cola.springboot.cocal.invite.DTO.InviteResponse;
+import cola.springboot.cocal.invite.DTO.MemberListDto.MemberListResponse;
 import cola.springboot.cocal.projectMember.MemberListQueryService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;

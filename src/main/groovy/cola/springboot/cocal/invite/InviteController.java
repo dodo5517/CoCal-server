@@ -1,7 +1,7 @@
 package cola.springboot.cocal.invite;
 
 import cola.springboot.cocal.common.api.ApiResponse;
-import cola.springboot.cocal.invite.dto.InviteResolveResponse;
+import cola.springboot.cocal.invite.DTO.InviteResolveResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
