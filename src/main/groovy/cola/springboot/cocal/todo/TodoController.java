@@ -10,6 +10,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/projects/{projectId}")
@@ -33,4 +35,37 @@ public class TodoController {
         TodoResponse response = todoService.createTodo(projectId, userId, request);
         return ResponseEntity.ok(ApiResponse.ok(response, httpReq.getRequestURI()));
     }
+
+    /*
+     * TODO 조회
+     * GET /api/projects/{projectId}/todos
+     */
+    // 개인 TODO 단건 조회
+    @GetMapping("/todos/{todoId}")
+    public ResponseEntity<ApiResponse<TodoResponse>> getPrivateTodo(
+            @PathVariable("projectId") Long projectId,
+            @PathVariable("todoId") Long todoId,
+            Authentication authentication,
+            HttpServletRequest httpReq
+    ) {
+        Long userId = Long.parseLong(authentication.getName());
+        TodoResponse response = todoService.getPrivateTodo(projectId, userId, todoId);
+        return ResponseEntity.ok(ApiResponse.ok(response, httpReq.getRequestURI()));
+    }
+
+    // 이벤트 TODO 단건 조회
+    @GetMapping("/events/{eventId}/todos/{todoId}")
+    public ResponseEntity<ApiResponse<TodoResponse>> getEventTodo(
+            @PathVariable("projectId") Long projectId,
+            @PathVariable("eventId") Long eventId,
+            @PathVariable("todoId") Long todoId,
+            Authentication authentication,
+            HttpServletRequest httpReq
+    ) {
+        Long userId = Long.parseLong(authentication.getName());
+        TodoResponse response = todoService.getEventTodo(projectId, userId, eventId, todoId);
+        return ResponseEntity.ok(ApiResponse.ok(response, httpReq.getRequestURI()));
+    }
+
+
 }
