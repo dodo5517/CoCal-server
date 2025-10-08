@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
+import java.util.Optional;
 
 public interface MemoRepository extends JpaRepository<Memo, Long> {
    
@@ -24,4 +25,18 @@ public interface MemoRepository extends JpaRepository<Memo, Long> {
             @Param("memoDate") LocalDate memoDate,
             Pageable pageable
     );
+
+    // 프로젝트별 해당 유저 메모 조회
+        @Query("""
+        select m
+        from Memo m
+        join m.project p
+        left join fetch m.author a
+        where m.id = :memoId
+          and p.id = :projectId
+    """)
+        Optional<Memo> findByIdAndProjectIdWithAuthor(
+                @Param("memoId") Long memoId,
+                @Param("projectId") Long projectId
+        );
 }
