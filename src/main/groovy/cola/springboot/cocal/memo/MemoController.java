@@ -48,4 +48,16 @@ public class MemoController {
         Page<MemoResponse> data = memoService.getMemosByDate(projectId, userId, date, pageable);
         return ResponseEntity.ok(ApiResponse.ok(data, httpReq.getRequestURI()));
     }
+
+    // 메모 수정
+    @PutMapping("/{memoId}")
+    public ResponseEntity<ApiResponse<MemoResponse>> updateMemo(@PathVariable ("projectId") Long projectId,
+                                                                @PathVariable ("memoId") Long memoId,
+                                                                @Valid @RequestBody MemoCreateRequest req,
+                                                                Authentication auth,
+                                                                HttpServletRequest httpReq) {
+        Long userId = Long.parseLong(auth.getName());
+        MemoResponse data = memoService.updateMemo(projectId, memoId, userId, req);
+        return ResponseEntity.ok(ApiResponse.ok(data, httpReq.getRequestURI()));
+    }
 }
