@@ -15,7 +15,6 @@ import java.time.LocalDateTime;
 @Entity
 @Table(name = "event_links",
         uniqueConstraints = {
-                @UniqueConstraint(name="uk_el_event_url", columnNames = {"event_id","url"}),
                 @UniqueConstraint(name="uk_el_event_order", columnNames = {"event_id","order_no"}) // 켰다면
         },
         indexes = {
@@ -35,9 +34,6 @@ public class EventLink {
     @Column(name="url", nullable=false, length=2000)
     private String url;
 
-    @Column(name="title", length=255)
-    private String title;
-
     @Column(name="order_no", nullable=false)
     private Integer orderNo;
 
@@ -50,4 +46,16 @@ public class EventLink {
 
     @Column(name="updated_at", nullable=false)
     private LocalDateTime updatedAt;
+
+    @PrePersist
+    void onCreate() {
+        LocalDateTime now = LocalDateTime.now();
+        if (createdAt == null) createdAt = now;
+        if (updatedAt == null) updatedAt = now;
+    }
+
+    @PreUpdate
+    void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
 }
