@@ -11,4 +11,6 @@ public interface EventLinkRepository extends JpaRepository<EventLink, Long> {
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("delete from EventLink el where el.event.id = :eventId")
     int deleteByEventId(@Param("eventId") Long eventId);
+
+    List<EventLink> findByEventIdOrderByOrderNoAsc(Long eventId);
 }
