@@ -25,5 +25,13 @@ public class EventCreateResponse {
     private LocalDateTime createdAt;
     private int offsetMinutes;
     private String color;
+    private List<LinkItem> urls;
     private List<Long> memberUserIds;
+
+    @Getter @Builder
+    public static class LinkItem {
+        private Long id;
+        private String url;
+        private Integer orderNo;
+    }
 }

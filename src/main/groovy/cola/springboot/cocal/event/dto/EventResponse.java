@@ -1,6 +1,7 @@
 package cola.springboot.cocal.event.dto;
 
 import cola.springboot.cocal.event.Event;
+import cola.springboot.cocal.event.dto.EventCreateResponse.LinkItem;
 import cola.springboot.cocal.user.User;
 import lombok.*;
 
@@ -28,6 +29,7 @@ public class EventResponse {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
+    private List<LinkItem> urls;
     private List<Long> memberUserIds;   // 참가자 ID 목록
     private List<MemberInfo> members;   // 참가자 상세 목록
 
@@ -42,7 +44,7 @@ public class EventResponse {
         private String profileImageUrl;
     }
 
-    public static EventResponse fromEntity(Event event, List<User> members) {
+    public static EventResponse fromEntity(Event event, List<User> members, List<LinkItem> urls) {
         return EventResponse.builder()
                 .id(event.getId())
                 .projectId(event.getProject().getId())
@@ -53,12 +55,12 @@ public class EventResponse {
                 .allDay(event.isAllDay())
                 .visibility(event.getVisibility().name())
                 .location(event.getLocation())
-                .url(event.getUrl())
                 .creatorId(event.getAuthor().getId())
                 .createdAt(event.getCreatedAt())
                 .updatedAt(event.getUpdatedAt())
                 .offsetMinutes(event.getOffsetMinutes())
                 .color(event.getColor())
+                .urls(urls)
                 // memberUserIds
                 .memberUserIds(members.stream().map(User::getId).toList())
                 // members 상세

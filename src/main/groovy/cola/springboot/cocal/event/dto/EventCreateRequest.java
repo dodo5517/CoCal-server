@@ -23,5 +23,6 @@ public class EventCreateRequest {
     private String url;
     private int offsetMinutes;
     private String color;
+    private List<String> urls;
     private List<Long> memberUserIds;
 }
