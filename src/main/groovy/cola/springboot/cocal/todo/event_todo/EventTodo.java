@@ -1,5 +1,6 @@
 package cola.springboot.cocal.todo.event_todo;
 
+import cola.springboot.cocal.event.Event;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.data.annotation.CreatedDate;
@@ -24,6 +25,11 @@ public class EventTodo {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "event_id", insertable = false, updatable = false)
+    private Event event;
+
 
     @Column(name = "event_id", nullable = false)
     private Long eventId;

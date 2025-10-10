@@ -28,9 +28,6 @@ public class Event {
     @JoinColumn(name = "project_id", nullable = false)
     private Project project;
 
-    @Column(name = "url", length = 2048)
-    private String url;
-
     @Column(nullable = false, length = 200)
     private String title;
 

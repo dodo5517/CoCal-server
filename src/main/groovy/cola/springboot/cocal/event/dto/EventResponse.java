@@ -53,7 +53,6 @@ public class EventResponse {
                 .allDay(event.isAllDay())
                 .visibility(event.getVisibility().name())
                 .location(event.getLocation())
-                .url(event.getUrl())
                 .creatorId(event.getAuthor().getId())
                 .createdAt(event.getCreatedAt())
                 .updatedAt(event.getUpdatedAt())

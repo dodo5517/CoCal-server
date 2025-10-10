@@ -80,7 +80,6 @@ public class EventService {
                 .allDay(request.isAllDay())
                 .visibility(visibility)
                 .location(request.getLocation())
-                .url(request.getUrl()) // null 허용
                 .offsetMinutes(request.getOffsetMinutes())
                 .color(request.getColor() != null ? request.getColor() : "#0B3559")
                 .author(author)
@@ -131,7 +130,6 @@ public class EventService {
                 .allDay(event.isAllDay())
                 .visibility(event.getVisibility().name())
                 .location(event.getLocation())
-                .url(event.getUrl()) // null이면 그대로 null 반환
                 .creatorId(author.getId())
                 .createdAt(event.getCreatedAt())
                 .offsetMinutes(event.getOffsetMinutes())
@@ -204,7 +202,6 @@ public class EventService {
         event.setAllDay(request.isAllDay());
         event.setVisibility(Event.Visibility.valueOf(request.getVisibility()));
         event.setLocation(request.getLocation());
-        event.setUrl(request.getUrl());
         event.setOffsetMinutes(request.getOffsetMinutes());
         event.setColor(request.getColor());
         event.setUpdatedAt(LocalDateTime.now());
