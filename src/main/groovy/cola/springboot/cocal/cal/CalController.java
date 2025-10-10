@@ -1,5 +1,6 @@
 package cola.springboot.cocal.cal;
 
+import cola.springboot.cocal.cal.DTO.CalItemResponse;
 import cola.springboot.cocal.cal.DTO.CalTodoResponse;
 import cola.springboot.cocal.common.api.ApiResponse;
 import jakarta.servlet.http.HttpServletRequest;
@@ -16,12 +17,24 @@ import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/cal")
+@RequestMapping("/api/cal/{projectId}")
 public class CalController {
     private final CalService calService;
 
-    // 캘린더용 TODO 조회
-    @GetMapping("/{projectId}/todos")
+    // 캘린더 + 이벤트 + 메모 조회
+    @GetMapping()
+    public ResponseEntity<ApiResponse<CalItemResponse>> getCalendarItems(
+            @PathVariable("projectId") Long projectId,
+            Authentication authentication,
+            HttpServletRequest httpReq) {
+        Long userId = Long.parseLong(authentication.getName());
+        CalItemResponse response = calService.getCalendarItems(userId, projectId);
+        return ResponseEntity.ok(ApiResponse.ok(response, httpReq.getRequestURI()));
+    }
+
+
+    // TODO 조회
+    @GetMapping("/todos")
     public ResponseEntity<ApiResponse<List<CalTodoResponse>>> getTodos(
             @PathVariable("projectId") Long projectId,
             Authentication authentication,
