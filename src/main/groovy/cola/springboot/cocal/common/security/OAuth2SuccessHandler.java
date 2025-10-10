@@ -12,6 +12,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.util.Pair;
 import org.springframework.http.HttpStatus;
@@ -20,6 +21,8 @@ import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.AuthenticationSuccessHandler;
 
 import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.List;
 
@@ -28,6 +31,9 @@ import static cola.springboot.cocal.common.util.CookieUtils.addRefreshCookie;
 @Configuration
 @RequiredArgsConstructor
 public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
+
+    @Value("${app.frontend.base-url}")
+    private String frontendBaseUrl; // ← 여기서 값 주입받음
 
     private final JwtTokenProvider jwtProvider;
     private final RefreshTokenService refreshTokenService;
@@ -61,7 +67,7 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
 
         // AccessToken 발급
         Collection<String> roleStrings = List.of(user.getRole().name());
-        String access = jwtProvider.createAccessToken(user.getId(), user.getEmail(), roleStrings);
+        String accessToken = jwtProvider.createAccessToken(user.getId(), user.getEmail(), roleStrings);
         // expiresIn
         long accessExpiresIn = jwtProvider.getAccessTokenTtlSeconds(); // 예: 20분 → 1200초
 
@@ -77,13 +83,21 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
         addRefreshCookie(res,refreshForClient);
 
         // AccessToken은 JSON Body로 응답
-        res.setStatus(HttpServletResponse.SC_OK);
+        /*res.setStatus(HttpServletResponse.SC_OK);
         res.setContentType("application/json;charset=UTF-8");
 
-        AuthData data = new AuthData(access, accessExpiresIn);
+        AuthData data = new AuthData(accessToken, accessExpiresIn);
 
         var successResponse = ApiResponse.ok(data, req.getRequestURI());
 
-        objectMapper.writeValue(res.getWriter(), successResponse);
+        objectMapper.writeValue(res.getWriter(), successResponse);*/
+
+        // 프론트엔드로 redirect (token, expiresIn 전달)
+        String redirectUrl = frontendBaseUrl + "/oauth/success"
+                + "?accessToken=" + URLEncoder.encode(accessToken, StandardCharsets.UTF_8)
+                + "&expiresIn=" + accessExpiresIn;
+
+        log.info("Redirecting to front-end: {}", redirectUrl);
+        res.sendRedirect(redirectUrl);
     }
 }
