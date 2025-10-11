@@ -208,8 +208,20 @@ public class EventService {
         // 이벤트 참가자 조회
         List<User> eventMembers = eventMemberRepository.findUsersByEventId(id);
 
+        // 링크 조회 (정렬 포함)
+        List<EventLink> links = eventLinkRepository.findByEventIdOrderByOrderNoAsc(id);
+
+        // url 응답
+        List<EventCreateResponse.LinkItem> linkItems = links.stream()
+                .map(l -> EventCreateResponse.LinkItem.builder()
+                        .id(l.getId())
+                        .url(l.getUrl())
+                        .orderNo(l.getOrderNo())
+                        .build())
+                .toList();
+
         // EventResponse에 members와 memberUserIds 둘 다 포함
-        return EventResponse.fromEntity(event, eventMembers);
+        return EventResponse.fromEntity(event, eventMembers, linkItems);
     }
 
     // 이벤트 수정
