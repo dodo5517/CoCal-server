@@ -6,6 +6,8 @@ import cola.springboot.cocal.common.exception.BusinessException;
 import cola.springboot.cocal.event.Event;
 import cola.springboot.cocal.event.EventRepository;
 import cola.springboot.cocal.event.dto.EventResponse;
+import cola.springboot.cocal.eventLink.LinkItem;
+import cola.springboot.cocal.eventLink.EventLinkRepository;
 import cola.springboot.cocal.eventMember.EventMemberRepository;
 import cola.springboot.cocal.memo.DTO.MemoMapper;
 import cola.springboot.cocal.memo.DTO.MemoResponse;
@@ -38,6 +40,7 @@ public class CalService {
     private final ProjectMemberRepository projectMemberRepository;
     private final ProjectRepository projectRepository;
     private final EventRepository eventRepository;
+    private final EventLinkRepository eventLinkRepository;
     private final EventMemberRepository eventMemberRepository;
     private final MemoRepository memoRepository;
 
@@ -68,7 +71,13 @@ public class CalService {
         List<EventResponse> eventResponses = events.stream()
                 .map(event -> {
                     List<User> members = eventMemberRepository.findUsersByEventId(event.getId());
-                    return EventResponse.fromEntity(event, members);
+                    // event에 연관된 url 조회 후 응답형식에 맞게 변환
+                    List<LinkItem> urlDtos = eventLinkRepository
+                            .findByEventIdOrderByOrderNoAsc(event.getId())
+                            .stream()
+                            .map(LinkItem::fromEntity)
+                            .toList();
+                    return EventResponse.fromEntity(event, members, urlDtos);
                 })
                 .toList();
 
