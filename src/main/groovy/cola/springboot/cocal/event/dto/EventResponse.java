@@ -1,7 +1,7 @@
 package cola.springboot.cocal.event.dto;
 
 import cola.springboot.cocal.event.Event;
-import cola.springboot.cocal.event.dto.EventCreateResponse.LinkItem;
+import cola.springboot.cocal.eventLink.LinkItem;
 import cola.springboot.cocal.user.User;
 import lombok.*;
 

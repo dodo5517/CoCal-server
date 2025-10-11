@@ -1,5 +1,6 @@
 package cola.springboot.cocal.event.dto;
 
+import cola.springboot.cocal.eventLink.LinkItem;
 import lombok.*;
 
 import java.time.LocalDateTime;
@@ -27,11 +28,4 @@ public class EventCreateResponse {
     private String color;
     private List<LinkItem> urls;
     private List<Long> memberUserIds;
-
-    @Getter @Builder
-    public static class LinkItem {
-        private Long id;
-        private String url;
-        private Integer orderNo;
-    }
 }
