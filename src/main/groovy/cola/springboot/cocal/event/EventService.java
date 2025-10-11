@@ -6,6 +6,7 @@ import cola.springboot.cocal.event.dto.EventCreateResponse;
 import cola.springboot.cocal.event.dto.EventResponse;
 import cola.springboot.cocal.eventLink.EventLink;
 import cola.springboot.cocal.eventLink.EventLinkRepository;
+import cola.springboot.cocal.eventLink.LinkItem;
 import cola.springboot.cocal.eventMember.EventMember;
 import cola.springboot.cocal.eventMember.EventMemberRepository;
 import cola.springboot.cocal.project.Project;
@@ -122,8 +123,8 @@ public class EventService {
         }
 
         // url 응답 생성
-        List<EventCreateResponse.LinkItem> linkItems = links.stream()
-                .map(l -> EventCreateResponse.LinkItem.builder()
+        List<LinkItem> linkItems = links.stream()
+                .map(l -> LinkItem.builder()
                         .id(l.getId())
                         .url(l.getUrl())
                         .orderNo(l.getOrderNo())
@@ -212,8 +213,8 @@ public class EventService {
         List<EventLink> links = eventLinkRepository.findByEventIdOrderByOrderNoAsc(id);
 
         // url 응답
-        List<EventCreateResponse.LinkItem> linkItems = links.stream()
-                .map(l -> EventCreateResponse.LinkItem.builder()
+        List<LinkItem> linkItems = links.stream()
+                .map(l -> LinkItem.builder()
                         .id(l.getId())
                         .url(l.getUrl())
                         .orderNo(l.getOrderNo())
@@ -294,8 +295,8 @@ public class EventService {
         }
 
         // url 응답 생성
-        List<EventCreateResponse.LinkItem> linkItems = links.stream()
-                .map(l -> EventCreateResponse.LinkItem.builder()
+        List<LinkItem> linkItems = links.stream()
+                .map(l -> LinkItem.builder()
                         .id(l.getId())
                         .url(l.getUrl())
                         .orderNo(l.getOrderNo())
