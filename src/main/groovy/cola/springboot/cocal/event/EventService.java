@@ -251,6 +251,57 @@ public class EventService {
                 LocalTime.parse(request.getEndTime())
         );
 
+        // 사용자 확인
+        User author = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(
+                        HttpStatus.NOT_FOUND, "USER_NOT_FOUND", "사용자를 찾을 수 없습니다."
+                ));
+
+        // URL 처리
+        List<String> urls = Optional.ofNullable(request.getUrls()).orElseGet(List::of).stream()
+                .map(s -> s == null ? "" : s.trim())
+                .filter(s -> !s.isEmpty())
+                .distinct() // 중복 제거 원치 않으면 제거
+                .toList();
+
+        // URL 리스트 전처리
+        List<EventLink> links = new ArrayList<>(urls.size());
+        for (int i = 0; i < urls.size(); i++) {
+            String url = urls.get(i);
+            // 길이/스킴 검증
+            if (url.length() > 2000) {
+                throw new BusinessException(HttpStatus.BAD_REQUEST, "URL_TOO_LONG", "URL 길이가 너무 깁니다.");
+            }
+            if (!(url.startsWith("http://") || url.startsWith("https://"))) {
+                throw new BusinessException(HttpStatus.BAD_REQUEST, "URL_SCHEME", "http/https만 허용합니다.");
+            }
+            // EventLink 생성
+            EventLink link = EventLink.builder()
+                    .event(event)
+                    .url(url)
+                    .orderNo(i)
+                    .createdBy(author)
+                    .createdAt(LocalDateTime.now())
+                    .updatedAt(LocalDateTime.now())
+                    .build();
+            links.add(link);
+        }
+        eventLinkRepository.deleteByEventId(event.getId());
+
+        // 저장 (비어있지 않다면)
+        if (!links.isEmpty()) {
+            eventLinkRepository.saveAll(links);
+        }
+
+        // url 응답 생성
+        List<EventCreateResponse.LinkItem> linkItems = links.stream()
+                .map(l -> EventCreateResponse.LinkItem.builder()
+                        .id(l.getId())
+                        .url(l.getUrl())
+                        .orderNo(l.getOrderNo())
+                        .build())
+                .toList();
+
         event.setTitle(request.getTitle());
         event.setDescription(request.getDescription());
         event.setStartAt(startAt);
@@ -258,7 +309,6 @@ public class EventService {
         event.setAllDay(request.isAllDay());
         event.setVisibility(Event.Visibility.valueOf(request.getVisibility()));
         event.setLocation(request.getLocation());
-        event.setUrl(request.getUrl());
         event.setOffsetMinutes(request.getOffsetMinutes());
         event.setColor(request.getColor());
         event.setUpdatedAt(LocalDateTime.now());
@@ -269,8 +319,9 @@ public class EventService {
         // 이벤트 참가자 조회
         List<User> eventMembers = eventMemberRepository.findUsersByEventId(id);
 
-        return EventResponse.fromEntity(event, eventMembers);
+        return EventResponse.fromEntity(event, eventMembers, linkItems);
     }
+
 
     // 이벤트 삭제
     @Transactional
