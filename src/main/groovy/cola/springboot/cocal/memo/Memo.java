@@ -37,8 +37,14 @@ public class Memo {
     @Column(name = "memo_date", nullable = false)
     private LocalDate memoDate;
 
+    @Column(name = "title", nullable = false, length = 200)
+    private String title;
+
     @Column(name = "content", nullable = false)
     private String content;
+
+    @Column(name = "url", length = 2000)
+    private String url;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(

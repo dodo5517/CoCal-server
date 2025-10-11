@@ -1,0 +1,3 @@
+ALTER TABLE memos
+    ADD COLUMN title VARCHAR(200) NOT NULL DEFAULT '제목없음',
+    ADD COLUMN url TEXT;
