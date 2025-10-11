@@ -19,7 +19,9 @@ public class MemoMapper {
                 .id(String.valueOf(m.getId()))
                 .projectId(m.getProject().getId())
                 .memoDate(m.getMemoDate())
+                .title(m.getTitle())
                 .content(m.getContent())
+                .url(m.getUrl())
                 .author(List.of(author)) // 단일 작성자라도 리스트 형태로 감싸줌
                 .createdAt(m.getCreatedAt())
                 .build();
