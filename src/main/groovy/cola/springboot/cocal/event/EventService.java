@@ -322,7 +322,6 @@ public class EventService {
         return EventResponse.fromEntity(event, eventMembers, linkItems);
     }
 
-
     // 이벤트 삭제
     @Transactional
     public void deleteEvent(Long id, Long projectId, Long userId) {

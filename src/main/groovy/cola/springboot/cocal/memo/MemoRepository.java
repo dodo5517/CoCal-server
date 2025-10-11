@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.Optional;
 
 public interface MemoRepository extends JpaRepository<Memo, Long> {
@@ -39,4 +40,14 @@ public interface MemoRepository extends JpaRepository<Memo, Long> {
                 @Param("memoId") Long memoId,
                 @Param("projectId") Long projectId
         );
+
+    @Query("""
+    select m
+    from Memo m
+    join fetch m.author a
+    where m.project.id = :projectId
+    order by m.memoDate asc, m.createdAt desc
+""")
+    List<Memo> findAllByProjectIdWithAuthor(@Param("projectId") Long projectId);
+
 }
