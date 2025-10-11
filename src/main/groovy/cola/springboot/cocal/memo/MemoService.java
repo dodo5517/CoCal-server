@@ -62,7 +62,9 @@ public class MemoService {
         Memo memo = Memo.builder()
                 .project(project)
                 .memoDate(req.getMemoDate())
+                .title(req.getTitle())
                 .content(content)
+                .url(req.getUrl())
                 .author(author)
                 .updatedAt(LocalDateTime.now())
                 .createdAt(LocalDateTime.now())
@@ -135,7 +137,7 @@ public class MemoService {
             throw new BusinessException(HttpStatus.FORBIDDEN, "FORBIDDEN", "프로젝트 멤버만 삭제할 수 있습니다.");
         }
 
-        // 2) 대상 메모
+        // 대상 메모
         Memo memo = memoRepository.findByIdAndProjectIdWithAuthor(memoId, projectId)
                 .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "MEMO_NOT_FOUND", "메모를 찾을 수 없습니다."));
 
