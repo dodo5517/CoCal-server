@@ -4,6 +4,8 @@ import cola.springboot.cocal.common.exception.BusinessException;
 import cola.springboot.cocal.event.dto.EventCreateRequest;
 import cola.springboot.cocal.event.dto.EventCreateResponse;
 import cola.springboot.cocal.event.dto.EventResponse;
+import cola.springboot.cocal.eventLink.EventLink;
+import cola.springboot.cocal.eventLink.EventLinkRepository;
 import cola.springboot.cocal.eventMember.EventMember;
 import cola.springboot.cocal.eventMember.EventMemberRepository;
 import cola.springboot.cocal.project.Project;
@@ -20,15 +22,13 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
 public class EventService {
     private final EventRepository eventRepository;
+    private final EventLinkRepository eventLinkRepository;
     private final ProjectRepository projectRepository;
     private final UserRepository userRepository;
     private final ProjectMemberRepository projectMemberRepository;
@@ -80,13 +80,55 @@ public class EventService {
                 .allDay(request.isAllDay())
                 .visibility(visibility)
                 .location(request.getLocation())
-                .url(request.getUrl()) // null 허용
                 .offsetMinutes(request.getOffsetMinutes())
                 .color(request.getColor() != null ? request.getColor() : "#0B3559")
                 .author(author)
                 .build();
 
         event = eventRepository.save(event);
+
+        // URL 처리
+        List<String> urls = Optional.ofNullable(request.getUrls()).orElseGet(List::of).stream()
+                .map(s -> s == null ? "" : s.trim())
+                .filter(s -> !s.isEmpty())
+                .distinct() // 중복 제거 원치 않으면 제거
+                .toList();
+
+        List<EventLink> links = new ArrayList<>(urls.size());
+        for (int i = 0; i < urls.size(); i++) {
+            String url = urls.get(i);
+            // 길이/스킴 검증
+            if (url.length() > 2000) {
+                throw new BusinessException(HttpStatus.BAD_REQUEST, "URL_TOO_LONG", "URL 길이가 너무 깁니다.");
+            }
+            if (!(url.startsWith("http://") || url.startsWith("https://"))) {
+                throw new BusinessException(HttpStatus.BAD_REQUEST, "URL_SCHEME", "http/https만 허용합니다.");
+            }
+            // EventLink 생성
+            EventLink link = EventLink.builder()
+                    .event(event)
+                    .url(url)
+                    .orderNo(i)
+                    .createdBy(author)
+                    .createdAt(LocalDateTime.now())
+                    .updatedAt(LocalDateTime.now())
+                    .build();
+
+            links.add(link);
+        }
+        // 저장 (비어있지 않다면)
+        if (!links.isEmpty()) {
+            eventLinkRepository.saveAll(links);
+        }
+
+        // url 응답 생성
+        List<EventCreateResponse.LinkItem> linkItems = links.stream()
+                .map(l -> EventCreateResponse.LinkItem.builder()
+                        .id(l.getId())
+                        .url(l.getUrl())
+                        .orderNo(l.getOrderNo())
+                        .build())
+                .toList();
 
         // 이벤트 멤버 세트 구성
         Set<Long> userIds = new HashSet<>();
@@ -131,7 +173,7 @@ public class EventService {
                 .allDay(event.isAllDay())
                 .visibility(event.getVisibility().name())
                 .location(event.getLocation())
-                .url(event.getUrl()) // null이면 그대로 null 반환
+                .urls(linkItems) // null이면 그대로 null 반환
                 .creatorId(author.getId())
                 .createdAt(event.getCreatedAt())
                 .offsetMinutes(event.getOffsetMinutes())
