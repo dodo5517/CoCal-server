@@ -346,6 +346,8 @@ public class EventService {
             );
         }
 
+        // 링크 삭제
+        eventLinkRepository.deleteByEventId(event.getId());
         // 이벤트 삭제
         eventRepository.delete(event);
     }
