@@ -77,6 +77,9 @@ dependencies {
 
     // aws s3
     implementation 'software.amazon.awssdk:s3:2.25.19'
+
+    // WebSocket + STOMP
+    implementation 'org.springframework.boot:spring-boot-starter-websocket'
 }
 
 tasks.named('test') {
