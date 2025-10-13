@@ -49,6 +49,7 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .cors(Customizer.withDefaults())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .formLogin(form -> form.disable()) // 기본 로그인폼 비활성화
                 // 허용할 url
                 .authorizeHttpRequests(auth -> auth
                         // 모든 OPTIONS 허용 (preflight 통과)
