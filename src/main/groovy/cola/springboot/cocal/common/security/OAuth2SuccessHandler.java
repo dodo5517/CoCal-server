@@ -93,7 +93,7 @@ public class OAuth2SuccessHandler implements AuthenticationSuccessHandler {
         objectMapper.writeValue(res.getWriter(), successResponse);*/
 
         // 프론트엔드로 redirect (token, expiresIn 전달)
-        String redirectUrl = frontendBaseUrl + "/oauth/success"
+        String redirectUrl = frontendBaseUrl + "oauth/success"
                 + "?accessToken=" + URLEncoder.encode(accessToken, StandardCharsets.UTF_8)
                 + "&expiresIn=" + accessExpiresIn;
 
