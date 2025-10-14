@@ -39,10 +39,21 @@ public class NotificationController {
     @PostMapping("/read/{notificationId}")
     public ResponseEntity<ApiResponse<Void>> markAsRead(
             @PathVariable Long notificationId,
+            Authentication auth,
             HttpServletRequest req
     ) {
-        notificationService.markAsRead(notificationId);
+        Long userId = Long.parseLong(auth.getName()); // JWT 등에서 사용자 ID 가져오기
+        notificationService.markAsRead(userId, notificationId);
         return ResponseEntity.ok(ApiResponse.ok(null, req.getRequestURI()));
+    }
+
+    // 전체 읽기
+    @PostMapping("/all-read")
+    public ResponseEntity<ApiResponse<Integer>> markAllAsRead(Authentication auth,
+                                                              HttpServletRequest req) {
+        Long userId = Long.parseLong(auth.getName()); // JWT 등에서 사용자 ID 가져오기
+        int updatedCount = notificationService.markAllAsRead(userId);
+        return ResponseEntity.ok(ApiResponse.ok(updatedCount, req.getRequestURI()));
     }
 
 }
