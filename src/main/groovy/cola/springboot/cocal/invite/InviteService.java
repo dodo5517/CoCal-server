@@ -76,7 +76,7 @@ public class InviteService {
         }
 
         // 초대할 사람
-        String email = req.getEmail().toLowerCase().trim();
+        String email = req.getEmail() == null ? null : req.getEmail().toLowerCase();
 
         // 초대한 사람
         User inviter = userRepository.findById(inviterUserId)

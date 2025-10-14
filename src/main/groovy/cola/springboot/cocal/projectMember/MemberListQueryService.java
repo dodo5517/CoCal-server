@@ -2,6 +2,7 @@ package cola.springboot.cocal.projectMember;
 
 import cola.springboot.cocal.common.exception.BusinessException;
 import cola.springboot.cocal.invite.Invite;
+import cola.springboot.cocal.user.User;
 import cola.springboot.cocal.invite.InviteRepository;
 import cola.springboot.cocal.invite.DTO.MemberListDto.InviteRow;
 import cola.springboot.cocal.invite.DTO.MemberListDto.MemberListResponse;
@@ -13,6 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -34,7 +36,7 @@ public class MemberListQueryService {
             throw new BusinessException(HttpStatus.FORBIDDEN, "NO_MEMBERSHIP", "프로젝트 멤버가 아닙니다.");
         }
 
-        // 멤버 목록
+        // 멤버 목록  members.getUser().getEmail().toLowerCase()
         List<ProjectMember> members = projectMemberRepository.findActiveMembersWithUser(projectId);
 
         // 초대 목록 (PENDING 상태만)
@@ -43,7 +45,11 @@ public class MemberListQueryService {
 
         // 멤버 이메일 집합 (중복 필터링용)
         Set<String> memberEmails = members.stream()
-                .map(pm -> pm.getUser().getEmail().toLowerCase())
+                .map(ProjectMember::getUser)
+                .filter(Objects::nonNull)
+                .map(User::getEmail)
+                .filter(Objects::nonNull)
+                .map(String::toLowerCase)
                 .collect(Collectors.toSet());
 
         // 매핑
@@ -61,7 +67,8 @@ public class MemberListQueryService {
                         .build())
                 .toList();
         List<InviteRow> inviteRows = invites.stream()
-                .filter(i -> !memberEmails.contains(i.getEmail().toLowerCase())) // 멤버와 중복 노출 방지
+                .filter(i -> i.getEmail() != null)
+                .filter(i -> !memberEmails.contains(i.getEmail().toLowerCase()))
                 .map(i -> InviteRow.builder()
                         .inviteId(i.getId())
                         .email(i.getEmail())
