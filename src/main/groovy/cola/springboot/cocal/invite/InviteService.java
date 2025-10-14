@@ -6,6 +6,8 @@ import cola.springboot.cocal.invite.Invite.InviteType;
 import cola.springboot.cocal.invite.DTO.InviteCreateRequest;
 import cola.springboot.cocal.invite.DTO.InviteResolveResponse;
 import cola.springboot.cocal.invite.DTO.InviteResponse;
+import cola.springboot.cocal.notification.Notification;
+import cola.springboot.cocal.notification.NotificationService;
 import cola.springboot.cocal.project.Project;
 import cola.springboot.cocal.project.ProjectRepository;
 import cola.springboot.cocal.projectMember.ProjectMember;
@@ -32,6 +34,7 @@ public class InviteService {
     private final InviteRepository inviteRepository;
     private final UserRepository userRepository;
     private final InviteLinkBuilder inviteLinkBuilder;
+    private final NotificationService notificationService;
 
     // 초대 만료일 기본값 = 7일
     private static final int DEFAULT_EXPIRE_DAYS = 7;
@@ -96,6 +99,7 @@ public class InviteService {
                         "USER_NOT_FOUND",
                         "사용자를 찾을 수 없습니다."
                 )));
+
         boolean alreadyMember = projectMemberRepository.existsByProjectIdAndUserIdAndStatus(projectId, targetUser.get().getId(), ProjectMember.MemberStatus.ACTIVE);
         if (alreadyMember) {
             throw new BusinessException(HttpStatus.CONFLICT, "ALREADY_MEMBER", "이미 해당 프로젝트의 멤버입니다.");
@@ -145,6 +149,20 @@ public class InviteService {
         }
         // 기존 초대가 없는 경우 새 초대 생성
         Invite saved = saveNewInvite(project, type, email, inviter, req.getExpireDays());
+
+        // 알림 보내기: 초대받는 사람에게만
+        if (type == Invite.InviteType.EMAIL) {
+            Notification notification = notificationService.sendNotification(
+                    targetUser.get().getId(),
+                    "INVITE",
+                    saved.getId(),
+                    "팀 초대 알림",
+                    inviter.getName() + "님이 '" + project.getName() + "' 프로젝트에 초대했습니다."
+            );
+
+            System.out.println("Notification ID after flush: " + notification.getId());
+        }
+
         return InviteResponse.of(saved,null);
     }
     private Invite saveNewInvite(Project project, InviteType type, String email, User inviter, Integer expireDays) {
