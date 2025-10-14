@@ -39,4 +39,16 @@ public class ProjectMemberController {
         Map<String, String> data = Map.of("message", memberService.leaveProject(actorUserId, projectId));
         return ResponseEntity.ok(ApiResponse.ok(data, httpReq.getRequestURI()));
     }
+
+    @PostMapping("/invites/{inviteId}")
+    public ResponseEntity<ApiResponse<Map<String, String>>> cancelInvite(
+            @PathVariable Long projectId,
+            @PathVariable Long inviteId,
+            Authentication auth,
+            HttpServletRequest httpReq
+    ) {
+        Long actorUserId = Long.parseLong(auth.getName());
+        Map<String, String> data = Map.of("message", memberService.cancelInvite(actorUserId, projectId, inviteId));
+        return ResponseEntity.ok(ApiResponse.ok(data, httpReq.getRequestURI()));
+    }
 }
