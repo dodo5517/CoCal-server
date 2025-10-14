@@ -41,11 +41,10 @@ public class TeamController {
     // 초대 링크 복사(생성)
     @GetMapping("/{projectId}/invites-link")
     public ResponseEntity<ApiResponse<InviteResponse>> createLink(@PathVariable Long projectId,
-                                                                  @Valid @RequestBody InviteCreateRequest req,
                                                               HttpServletRequest httpReq,
                                                               Authentication auth) {
         Long inviterUserId = Long.parseLong(auth.getName());
-        InviteResponse data = inviteService.getOrCreateOpenLinkInvite(inviterUserId, projectId, req.getExpireDays());
+        InviteResponse data = inviteService.getOrCreateOpenLinkInvite(inviterUserId, projectId);
         return ResponseEntity.ok(ApiResponse.ok(data, httpReq.getRequestURI()));
     }
 

@@ -182,7 +182,7 @@ public class InviteService {
 
     // 활성 링크 있는지 확인
     @Transactional
-    public InviteResponse getOrCreateOpenLinkInvite(Long inviterUserId, Long projectId, Integer expireDays) {
+    public InviteResponse getOrCreateOpenLinkInvite(Long inviterUserId, Long projectId) {
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new BusinessException(
                         HttpStatus.NOT_FOUND, "PROJECT_NOT_FOUND", "존재하지 않는 프로젝트입니다."
@@ -205,7 +205,7 @@ public class InviteService {
         }
 
         // 없으면 생성 (아래 트랜잭션 열고 저장 필요)
-        return createOpenLinkInvite(inviterUserId, project, expireDays);
+        return createOpenLinkInvite(inviterUserId, project, 7);
     }
 
     // 공유 링크 생성
