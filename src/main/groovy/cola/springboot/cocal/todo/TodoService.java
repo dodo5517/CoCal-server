@@ -3,6 +3,7 @@ package cola.springboot.cocal.todo;
 import cola.springboot.cocal.common.exception.BusinessException;
 import cola.springboot.cocal.event.Event;
 import cola.springboot.cocal.event.EventRepository;
+import cola.springboot.cocal.notification.ReminderService;
 import cola.springboot.cocal.project.Project;
 import cola.springboot.cocal.project.ProjectRepository;
 import cola.springboot.cocal.projectMember.ProjectMember;
@@ -20,6 +21,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+
 @Service
 @RequiredArgsConstructor
 public class TodoService {
@@ -30,6 +33,7 @@ public class TodoService {
     private final EventRepository eventRepository;
     private final EventTodoRepository eventTodoRepository;
     private final ProjectMemberRepository projectMemberRepository;
+    private final ReminderService privateReminderService;
 
     /*
         TODO 생성
@@ -173,6 +177,11 @@ public class TodoService {
                 throw new BusinessException(HttpStatus.FORBIDDEN, "FORBIDDEN", "본인 TODO만 수정할 수 있습니다.");
             }
 
+            LocalDateTime newDate = request.getDate(); // request.getDate() 타입이 LocalDateTime이라면 바로 사용
+            // 시간 변경 여부 확인 (date, offsetMinutes)
+            boolean isTimeChanged = !todo.getDate().equals(newDate)
+                    || todo.getOffsetMinutes() != (request.getOffsetMinutes() != null ? request.getOffsetMinutes() : 0);
+
             // 값 업데이트
             todo.setTitle(request.getTitle());
             todo.setDescription(request.getDescription());
@@ -183,6 +192,12 @@ public class TodoService {
             todo.setOrderNo(request.getOrderNo() != null ? request.getOrderNo() : 0);
 
             todo = privateTodoRepository.save(todo);
+
+            // 시간 변경 시 알림 재등록
+            if (isTimeChanged) {
+                privateReminderService.handlePrivateTodoTimeChange(todo);
+            }
+
             return TodoResponse.fromPrivateTodo(todo);
         }
         else if ("EVENT".equalsIgnoreCase(request.getType())) {
