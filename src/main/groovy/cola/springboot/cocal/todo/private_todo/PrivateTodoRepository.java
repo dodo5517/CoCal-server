@@ -10,6 +10,13 @@ import java.util.List;
 
 public interface PrivateTodoRepository extends JpaRepository<PrivateTodo, Long>{
     List<PrivateTodo> findAllByOwnerId(Long ownerId);
+    // [start, end) 범위 조회
+    List<PrivateTodo> findAllByProjectIdAndOwnerIdAndDateGreaterThanEqualAndDateLessThan(
+            Long projectId,
+            Long ownerId,
+            LocalDateTime start,
+            LocalDateTime end
+    );
 
     /**
      * 현재 시각(now)을 기준으로 offsetMinutes 만큼 남은 개인 TODO를 조회
