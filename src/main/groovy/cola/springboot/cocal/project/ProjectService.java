@@ -101,19 +101,32 @@ public class ProjectService {
     }
 
     // 목록 조회
-    @Transactional(readOnly = true)
+    @Transactional
     public Page<ProjectResponseDto> getProjects(Long userId, String email, Pageable pageable) {
-        return projectRepository.findMyProjects(userId, email, pageable)
-                .map(project -> {
-                    List<ProjectMemberInfoDto> members = projectMemberRepository.findActiveMembersWithUser(project.getId())
-                            .stream()
-                            .map(pm -> ProjectMemberInfoDto.builder()
-                                    .userId(pm.getUser().getId())
-                                    .name(pm.getUser().getName())
-                                    .email(pm.getUser().getEmail())
-                                    .profileImageUrl(pm.getUser().getProfileImageUrl())
-                                    .build())
-                            .toList();
+        // 오늘 날짜
+        LocalDate today = LocalDate.now();
+        // 프로젝트 조회
+        Page<Project> page = projectRepository.findMyProjects(userId, email, pageable);
+        // endDate 지났으면 COMPLETED로 저장
+        page.getContent().forEach(project -> {
+            if (project.getEndDate() != null
+                    && project.getEndDate().isBefore(today)
+                    && project.getStatus() != Project.Status.COMPLETED) {
+                project.setStatus(Project.Status.COMPLETED);
+                project.setUpdatedAt(LocalDateTime.now());
+            }
+        });
+
+        return page.map(project -> {
+            List<ProjectMemberInfoDto> members = projectMemberRepository.findActiveMembersWithUser(project.getId())
+                    .stream()
+                    .map(pm -> ProjectMemberInfoDto.builder()
+                            .userId(pm.getUser().getId())
+                            .name(pm.getUser().getName())
+                            .email(pm.getUser().getEmail())
+                            .profileImageUrl(pm.getUser().getProfileImageUrl())
+                            .build())
+                    .toList();
 
                     // ProjectResponseDto 매핑
                     return ProjectResponseDto.builder()
