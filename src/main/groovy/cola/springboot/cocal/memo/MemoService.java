@@ -119,9 +119,10 @@ public class MemoService {
 
         // 변경
         memo.setTitle(req.getTitle().trim());
-        memo.setUrl(req.getUrl());
+        memo.setUrl(req.getUrl().trim());
         memo.setContent(req.getContent().trim());
         memo.setMemoDate(req.getMemoDate());
+        memo.setUpdatedAt(LocalDateTime.now()); // updatedAt 직접 갱신
 
         // 저장 (DB 트리거가 updated_at을 갱신)
         Memo saved = memoRepository.save(memo);
