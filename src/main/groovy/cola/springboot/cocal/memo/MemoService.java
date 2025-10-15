@@ -118,6 +118,8 @@ public class MemoService {
         }
 
         // 변경
+        memo.setTitle(req.getTitle().trim());
+        memo.setUrl(req.getUrl());
         memo.setContent(req.getContent().trim());
         memo.setMemoDate(req.getMemoDate());
 
