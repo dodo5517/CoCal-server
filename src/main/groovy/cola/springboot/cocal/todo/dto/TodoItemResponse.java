@@ -12,6 +12,8 @@ import lombok.Getter;
 public class TodoItemResponse {
     private Long id;
     private String title;
+    private String description;
+    private String status;
     private String eventTitle;
     private String eventColor;
 
@@ -19,6 +21,8 @@ public class TodoItemResponse {
         return TodoItemResponse.builder()
                 .id(t.getId())
                 .title(t.getTitle())
+                .description(t.getDescription())  
+                .status(t.getStatus().name())
                 .build();
     }
 
@@ -28,6 +32,8 @@ public class TodoItemResponse {
                 .title(t.getTitle()) // 메모 제목
                 .eventTitle(t.getEvent().getTitle()) // 종속 이벤트 제목
                 .eventColor(t.getEvent().getColor()) // 종속 이벤트 색상
+                .description(t.getDescription())
+                .status(t.getStatus().name())
                 .build();
     }
 }
