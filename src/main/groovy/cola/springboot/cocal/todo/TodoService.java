@@ -140,6 +140,12 @@ public class TodoService {
     // 해당 날짜의 TODO 조회-private
     @Transactional(readOnly = true)
     public TodoListResponse getPrivateDateTodo(Long projectId, Long userId, LocalDate date) {
+        // 프로젝트 확인
+        projectRepository.findById(projectId)
+            .orElseThrow(() -> new BusinessException(
+                    HttpStatus.NOT_FOUND, "PROJECT_NOT_FOUND", "프로젝트를 찾을 수 없습니다."
+            ));
+
         // 사용자 확인
         userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", "사용자를 찾을 수 없습니다."));
@@ -191,6 +197,38 @@ public class TodoService {
         }
 
         return TodoResponse.fromEventTodo(todo);
+    }
+
+    // 해당 날짜의 TODO 조회-event
+    @Transactional(readOnly = true)
+    public TodoListResponse getEventDateTodo(Long projectId, Long userId, LocalDate date) {
+        // 프로젝트 확인
+        projectRepository.findById(projectId)
+                .orElseThrow(() -> new BusinessException(
+                        HttpStatus.NOT_FOUND, "PROJECT_NOT_FOUND", "프로젝트를 찾을 수 없습니다."
+                ));
+
+        // 사용자 확인
+        userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", "사용자를 찾을 수 없습니다."));
+
+        // 날짜 경계 계산: [start, end)
+        LocalDateTime start = date.atStartOfDay();               // 00:00:00
+        LocalDateTime end   = date.plusDays(1).atStartOfDay();   // 다음날 00:00:00
+
+        // 조회
+        List<EventTodo> todos = eventTodoRepository.findProjectEventTodosOnDate(projectId, start, end);
+
+        List<TodoItemResponse> items = todos.stream()
+                .map(TodoItemResponse::fromEntity)
+                .toList();;
+
+        return TodoListResponse.builder()
+                .projectId(projectId)
+                .date(date)
+                .count(items.size())
+                .items(items)
+                .build();
     }
 
     /*

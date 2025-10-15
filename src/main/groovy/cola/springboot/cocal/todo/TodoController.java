@@ -81,6 +81,20 @@ public class TodoController {
         return ResponseEntity.ok(ApiResponse.ok(response, httpReq.getRequestURI()));
     }
 
+    // 해당 날짜의 이벤트 TODO 조회
+    @GetMapping("/events/todos")
+    public ResponseEntity<ApiResponse<TodoListResponse>> getEventDateTodo(
+            @PathVariable("projectId") Long projectId,
+            @RequestParam("date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            Authentication authentication,
+            HttpServletRequest httpReq
+    ) {
+        Long userId = Long.parseLong(authentication.getName());
+
+        TodoListResponse response = todoService.getEventDateTodo(projectId, userId, date);
+        return ResponseEntity.ok(ApiResponse.ok(response, httpReq.getRequestURI()));
+    }
+
     /**
      * TODO 수정
      * PUT /api/projects/{projectId}/todos/{todoId}
