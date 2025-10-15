@@ -1,14 +1,18 @@
 package cola.springboot.cocal.todo;
 
 import cola.springboot.cocal.common.api.ApiResponse;
+import cola.springboot.cocal.todo.dto.TodoListResponse;
 import cola.springboot.cocal.todo.dto.TodoRequest;
 import cola.springboot.cocal.todo.dto.TodoResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDate;
 
 @RestController
 @RequiredArgsConstructor
@@ -47,6 +51,19 @@ public class TodoController {
     ) {
         Long userId = Long.parseLong(authentication.getName());
         TodoResponse response = todoService.getPrivateTodo(projectId, userId, todoId);
+        return ResponseEntity.ok(ApiResponse.ok(response, httpReq.getRequestURI()));
+    }
+
+    // 해당 날짜의 개인 TODO 조회
+    @GetMapping("/todos")
+    public ResponseEntity<ApiResponse<TodoListResponse>> getPrivateDateTodo(
+            @PathVariable("projectId") Long projectId,
+            @RequestParam("date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            Authentication authentication,
+            HttpServletRequest httpReq
+    ) {
+        Long userId = Long.parseLong(authentication.getName());
+        TodoListResponse response = todoService.getPrivateDateTodo(projectId, userId, date);
         return ResponseEntity.ok(ApiResponse.ok(response, httpReq.getRequestURI()));
     }
 
