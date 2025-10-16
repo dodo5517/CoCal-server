@@ -12,9 +12,9 @@ public class BusinessException extends RuntimeException {
     }
 
     public BusinessException(HttpStatus status, String code, String message, Object details) {
-        super(message);
+        super(message == null ? "Unexpected error" : message);
         this.status = status;
-        this.code = code;
+        this.code = code == null ? "INTERNAL_ERROR" : code;
         this.details = details;
     }
 

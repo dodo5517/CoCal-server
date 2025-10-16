@@ -1,10 +1,15 @@
 package cola.springboot.cocal.common.api;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 @Getter
 @Builder
+@NoArgsConstructor(force = true)
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class ApiError {
     private final String code;    // 팀 표준 에러코드 (예: INVITE_TOO_MANY_DECLINES)
     private final String message; // 사용자 노출 메시지
