@@ -20,7 +20,6 @@ public class EventCreateRequest {
     private boolean allDay;
     private String visibility; // PRIVATE / PUBLIC
     private String location;
-    private String url;
     private int offsetMinutes;
     private String color;
     private List<String> urls;

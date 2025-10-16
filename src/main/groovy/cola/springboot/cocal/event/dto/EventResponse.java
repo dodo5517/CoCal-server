@@ -23,14 +23,11 @@ public class EventResponse {
     private String visibility;
     private Long creatorId;
     private String location;
-    private String url;
     private int offsetMinutes;
     private String color;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-
     private List<LinkItem> urls;
-    private List<Long> memberUserIds;   // 참가자 ID 목록
     private List<MemberInfo> members;   // 참가자 상세 목록
 
     @Getter
@@ -61,8 +58,6 @@ public class EventResponse {
                 .offsetMinutes(event.getOffsetMinutes())
                 .color(event.getColor())
                 .urls(urls)
-                // memberUserIds
-                .memberUserIds(members.stream().map(User::getId).toList())
                 // members 상세
                 .members(members.stream()
                         .map(u -> MemberInfo.builder()
