@@ -16,6 +16,8 @@ public interface EventRepository extends JpaRepository<Event, Long> {
     @Query("SELECT e FROM Event e WHERE e.project.id = :projectId")
     List<Event> findAllByProjectId(@Param("projectId") Long projectId);
 
+    Optional<Event> findById(Long id);
+
     /**
      * 현재 시각(now)을 기준으로 offsetMinutes 만큼 남은 이벤트를 조회
      *

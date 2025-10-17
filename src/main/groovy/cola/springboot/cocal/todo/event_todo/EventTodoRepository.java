@@ -8,6 +8,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 public interface EventTodoRepository extends JpaRepository<EventTodo, Long> {
+    List<EventTodo> findByEventId(Long eventId);
+
     @Query(value = "SELECT et.* " +
             "FROM event_todos et " +
             "JOIN events e ON et.event_id = e.id " +

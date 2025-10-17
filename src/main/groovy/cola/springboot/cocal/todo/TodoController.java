@@ -95,6 +95,19 @@ public class TodoController {
         return ResponseEntity.ok(ApiResponse.ok(response, httpReq.getRequestURI()));
     }
 
+    // 해당 이벤트에 종속된 이벤트 TODO 모두 조회
+    @GetMapping("/events/{eventId}/todos")
+    public ResponseEntity<ApiResponse<TodoListResponse>> getEventTodo(
+            @PathVariable("projectId") Long projectId,
+            @PathVariable("eventId") Long eventId,
+            Authentication authentication,
+            HttpServletRequest httpReq
+    ) {
+        Long userId = Long.parseLong(authentication.getName());
+        TodoListResponse response = todoService.getEventTodoAll(projectId, userId, eventId);
+        return ResponseEntity.ok(ApiResponse.ok(response, httpReq.getRequestURI()));
+    }
+
     /**
      * TODO 수정
      * PUT /api/projects/{projectId}/todos/{todoId}

@@ -26,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -208,6 +209,12 @@ public class TodoService {
                         HttpStatus.NOT_FOUND, "PROJECT_NOT_FOUND", "프로젝트를 찾을 수 없습니다."
                 ));
 
+        // 프로젝트 멤버 확인
+        boolean isMember = projectMemberRepository.existsByProjectIdAndUserIdAndStatus(projectId, userId, ProjectMember.MemberStatus.ACTIVE);
+        if (!isMember) {
+            throw new BusinessException(HttpStatus.FORBIDDEN, "FORBIDDEN", "프로젝트 멤버만 조회할 수 있습니다.");
+        }
+
         // 사용자 확인
         userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", "사용자를 찾을 수 없습니다."));
@@ -226,6 +233,47 @@ public class TodoService {
         return TodoListResponse.builder()
                 .projectId(projectId)
                 .date(date)
+                .count(items.size())
+                .items(items)
+                .build();
+    }
+
+    // 해당 이벤트에 종속된 이벤트 TODO 조회-event
+    @Transactional(readOnly = true)
+    public TodoListResponse getEventTodoAll(Long projectId, Long userId, Long eventId) {
+        // 프로젝트 확인
+        projectRepository.findById(projectId)
+                .orElseThrow(() -> new BusinessException(
+                        HttpStatus.NOT_FOUND, "PROJECT_NOT_FOUND", "프로젝트를 찾을 수 없습니다."
+                ));
+        
+        // 해당 이벤트가 속한 projectId 조회
+        Optional<Event> targetEvent = eventRepository.findById(eventId);
+        Long targetProjectId = targetEvent.get().getProject().getId();
+        
+        if (!targetProjectId.equals(projectId)) {
+            throw new BusinessException(HttpStatus.FORBIDDEN, "FORBIDDEN", "이 이벤트는 해당 프로젝트에 속하지 않습니다.");
+        }
+
+        // 프로젝트 멤버 확인
+        boolean isMember = projectMemberRepository.existsByProjectIdAndUserIdAndStatus(projectId, userId, ProjectMember.MemberStatus.ACTIVE);
+        if (!isMember) {
+            throw new BusinessException(HttpStatus.FORBIDDEN, "FORBIDDEN", "프로젝트 멤버만 조회할 수 있습니다.");
+        }
+
+        // 사용자 확인
+        userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", "사용자를 찾을 수 없습니다."));
+
+        // 해당 이벤트의 투두 조회
+        List<EventTodo> todos = eventTodoRepository.findByEventId(eventId);
+
+        List<TodoItemResponse> items = todos.stream()
+                .map(TodoItemResponse::fromEntity)
+                .toList();;
+
+        return TodoListResponse.builder()
+                .projectId(projectId)
                 .count(items.size())
                 .items(items)
                 .build();
