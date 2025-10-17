@@ -30,7 +30,7 @@ public class TodoItemResponse {
     public static TodoItemResponse fromEntity(EventTodo t) {
         return TodoItemResponse.builder()
                 .id(t.getId())
-                .eventId(t.getEventId())
+                .eventId(t.getEvent().getId())
                 .title(t.getTitle()) // 메모 제목
                 .eventTitle(t.getEvent().getTitle()) // 종속 이벤트 제목
                 .eventColor(t.getEvent().getColor()) // 종속 이벤트 색상
