@@ -35,7 +35,7 @@ public class EventResponse {
     @AllArgsConstructor
     @NoArgsConstructor
     public static class MemberInfo {
-        private Long id;
+        private Long userId;
         private String name;
         private String email;
         private String profileImageUrl;
@@ -61,7 +61,7 @@ public class EventResponse {
                 // members 상세
                 .members(members.stream()
                         .map(u -> MemberInfo.builder()
-                                .id(u.getId())
+                                .userId(u.getId())
                                 .name(u.getName())
                                 .email(u.getEmail())
                                 .profileImageUrl(u.getProfileImageUrl())
