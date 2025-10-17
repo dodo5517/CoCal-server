@@ -16,6 +16,7 @@ public class TodoItemResponse {
     private String status;
     private String eventTitle;
     private String eventColor;
+    private Long eventId;
 
     public static TodoItemResponse fromEntity(PrivateTodo t) {
         return TodoItemResponse.builder()
@@ -29,6 +30,7 @@ public class TodoItemResponse {
     public static TodoItemResponse fromEntity(EventTodo t) {
         return TodoItemResponse.builder()
                 .id(t.getId())
+                .eventId(t.getEventId())
                 .title(t.getTitle()) // 메모 제목
                 .eventTitle(t.getEvent().getTitle()) // 종속 이벤트 제목
                 .eventColor(t.getEvent().getColor()) // 종속 이벤트 색상
