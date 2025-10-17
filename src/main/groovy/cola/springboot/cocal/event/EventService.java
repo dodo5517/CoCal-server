@@ -329,6 +329,38 @@ public class EventService {
             eventReminderService.handleEventTimeChange(event);
         }
 
+        // 기존 이벤트 멤버 삭제
+        eventMemberRepository.deleteByEventId(event.getId());
+
+        // 이벤트 멤버 세트 구성
+        Set<Long> userIds = new HashSet<>();
+        if (request.getMemberUserIds() != null) {
+            request.getMemberUserIds().stream()
+                    .filter(Objects::nonNull)
+                    .forEach(userIds::add);
+        }
+        userIds.add(userId); // 본인은 자동 포함
+
+        // 프로젝트 멤버 검증
+        Set<Long> projectMemberIds = projectMemberRepository
+                .findMemberUserIdsInProject(projectId, userIds);
+        if (projectMemberIds.size() != userIds.size()) {
+            // 프로젝트 멤버가 아닌 userId들 식별
+            Set<Long> notMembers = new HashSet<>(userIds);
+            // 요청 들어온 Ids에서 검증된 프로젝트 멤버 Ids 제거하여 멤버 아닌 사용자 식별
+            notMembers.removeAll(projectMemberIds);
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "NOT_PROJECT_MEMBER",
+                    "프로젝트 멤버가 아닌 사용자 포함: " + notMembers);
+        }
+
+        // EventMember 일괄 저장
+        Event finalEvent = event;
+        List<EventMember> savedMembers = eventMemberRepository.saveAll(
+                projectMemberIds.stream()
+                        .map(uid -> EventMember.of(finalEvent, userRepository.getReferenceById(uid)))
+                        .toList()
+        );
+
         // 이벤트 참가자 조회
         List<User> eventMembers = eventMemberRepository.findUsersByEventId(id);
         return EventResponse.fromEntity(event, eventMembers, linkItems);
