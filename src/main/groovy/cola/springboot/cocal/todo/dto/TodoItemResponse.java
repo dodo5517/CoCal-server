@@ -14,9 +14,12 @@ public class TodoItemResponse {
     private String title;
     private String description;
     private String status;
+    private String url;
+    private Integer orderNo;
     private String eventTitle;
     private String eventColor;
     private Long eventId;
+    private Long authorId;
 
     public static TodoItemResponse fromEntity(PrivateTodo t) {
         return TodoItemResponse.builder()
@@ -24,6 +27,9 @@ public class TodoItemResponse {
                 .title(t.getTitle())
                 .description(t.getDescription())  
                 .status(t.getStatus().name())
+                .authorId(t.getOwnerId())
+                .orderNo(t.getOrderNo())
+                .url(t.getUrl())
                 .build();
     }
 
@@ -32,10 +38,13 @@ public class TodoItemResponse {
                 .id(t.getId())
                 .eventId(t.getEvent().getId())
                 .title(t.getTitle()) // 메모 제목
+                .url(t.getUrl())
                 .eventTitle(t.getEvent().getTitle()) // 종속 이벤트 제목
                 .eventColor(t.getEvent().getColor()) // 종속 이벤트 색상
                 .description(t.getDescription())
                 .status(t.getStatus().name())
+                .authorId(t.getAuthorId())
+                .orderNo(t.getOrderNo())
                 .build();
     }
 }
