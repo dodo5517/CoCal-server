@@ -280,7 +280,7 @@ public class TodoService {
     }
 
     /*
-        TODO 수정
+        TODO 수정 (EVENT 타입의 eventId 변경 허용)
     */
     @Transactional
     public TodoResponse updateTodo(Long projectId, Long userId, Long todoId, TodoRequest request) {
@@ -290,11 +290,9 @@ public class TodoService {
 
         // 2. TODO 타입 분기
         if ("PRIVATE".equalsIgnoreCase(request.getType())) {
-            // Private TODO 조회
+            // Private TODO 처리 (기존 코드와 동일)
             PrivateTodo todo = privateTodoRepository.findById(todoId)
                     .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "TODO_NOT_FOUND", "TODO를 찾을 수 없습니다."));
-
-            // 접근 권한 확인 (본인만 수정 가능)
             if (!todo.getProjectId().equals(projectId) || !todo.getOwnerId().equals(userId)) {
                 throw new BusinessException(HttpStatus.FORBIDDEN, "FORBIDDEN", "본인 TODO만 수정할 수 있습니다.");
             }
@@ -337,14 +335,19 @@ public class TodoService {
                 throw new BusinessException(HttpStatus.FORBIDDEN, "FORBIDDEN", "프로젝트 멤버만 수정할 수 있습니다.");
             }
 
-            // 이벤트와 프로젝트 일치 확인
-            Event event = eventRepository.findById(request.getEventId())
+            // 새 이벤트 조회
+            Event newEvent = eventRepository.findById(request.getEventId())
                     .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "EVENT_NOT_FOUND", "이벤트를 찾을 수 없습니다."));
-            if (!event.getProject().getId().equals(projectId) || !todo.getEventId().equals(request.getEventId())) {
-                throw new BusinessException(HttpStatus.BAD_REQUEST, "INVALID_RELATION", "이 TODO는 해당 이벤트에 속하지 않습니다.");
+
+            // 새 이벤트가 해당 프로젝트에 속하는지 확인
+            if (!newEvent.getProject().getId().equals(projectId)) {
+                throw new BusinessException(HttpStatus.BAD_REQUEST, "INVALID_RELATION", "이 TODO는 해당 프로젝트에 속하지 않는 이벤트에 연결될 수 없습니다.");
             }
 
-            // 값 업데이트
+            // eventId가 바뀌었으면 새 이벤트로 업데이트
+            todo.setEventId(request.getEventId());
+
+            // 나머지 필드 업데이트
             todo.setTitle(request.getTitle());
             todo.setDescription(request.getDescription());
             todo.setUrl(request.getUrl());
@@ -353,11 +356,13 @@ public class TodoService {
             todo.setOrderNo(request.getOrderNo() != null ? request.getOrderNo() : 0);
 
             todo = eventTodoRepository.save(todo);
+
             return TodoResponse.fromEventTodo(todo);
         }
 
         throw new BusinessException(HttpStatus.BAD_REQUEST, "INVALID_TYPE", "유효하지 않은 TODO 타입입니다. PRIVATE 또는 EVENT만 가능합니다.");
     }
+
 
     /*
         TODO 삭제
