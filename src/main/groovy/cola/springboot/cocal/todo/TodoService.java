@@ -143,9 +143,9 @@ public class TodoService {
     public TodoListResponse getPrivateDateTodo(Long projectId, Long userId, LocalDate date) {
         // 프로젝트 확인
         projectRepository.findById(projectId)
-            .orElseThrow(() -> new BusinessException(
-                    HttpStatus.NOT_FOUND, "PROJECT_NOT_FOUND", "프로젝트를 찾을 수 없습니다."
-            ));
+                .orElseThrow(() -> new BusinessException(
+                        HttpStatus.NOT_FOUND, "PROJECT_NOT_FOUND", "프로젝트를 찾을 수 없습니다."
+                ));
 
         // 사용자 확인
         userRepository.findById(userId)
@@ -246,11 +246,11 @@ public class TodoService {
                 .orElseThrow(() -> new BusinessException(
                         HttpStatus.NOT_FOUND, "PROJECT_NOT_FOUND", "프로젝트를 찾을 수 없습니다."
                 ));
-        
+
         // 해당 이벤트가 속한 projectId 조회
         Optional<Event> targetEvent = eventRepository.findById(eventId);
         Long targetProjectId = targetEvent.get().getProject().getId();
-        
+
         if (!targetProjectId.equals(projectId)) {
             throw new BusinessException(HttpStatus.FORBIDDEN, "FORBIDDEN", "이 이벤트는 해당 프로젝트에 속하지 않습니다.");
         }
@@ -280,7 +280,7 @@ public class TodoService {
     }
 
     /*
-        TODO 수정 (타입 변경 시 '삭제 후 생성' 방식으로 변경)
+        TODO 수정
     */
     @Transactional
     public TodoResponse updateTodo(Long projectId, Long userId, Long todoId, TodoRequest request) {
@@ -288,149 +288,76 @@ public class TodoService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", "사용자를 찾을 수 없습니다."));
 
-        // 2. 기존 TODO가 어느 타입인지 먼저 확인
-        Optional<PrivateTodo> privateTodoOpt = privateTodoRepository.findById(todoId);
-        Optional<EventTodo> eventTodoOpt = eventTodoRepository.findById(todoId);
+        // 2. TODO 타입 분기
+        if ("PRIVATE".equalsIgnoreCase(request.getType())) {
+            // Private TODO 조회
+            PrivateTodo todo = privateTodoRepository.findById(todoId)
+                    .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "TODO_NOT_FOUND", "TODO를 찾을 수 없습니다."));
 
-        String originalType;
-        if (privateTodoOpt.isPresent()) {
-            originalType = "PRIVATE";
-        } else if (eventTodoOpt.isPresent()) {
-            originalType = "EVENT";
-        } else {
-            throw new BusinessException(HttpStatus.NOT_FOUND, "TODO_NOT_FOUND", "수정할 TODO를 찾을 수 없습니다.");
+            // 접근 권한 확인 (본인만 수정 가능)
+            if (!todo.getProjectId().equals(projectId) || !todo.getOwnerId().equals(userId)) {
+                throw new BusinessException(HttpStatus.FORBIDDEN, "FORBIDDEN", "본인 TODO만 수정할 수 있습니다.");
+            }
+
+            LocalDateTime newDate = request.getDate(); // request.getDate() 타입이 LocalDateTime이라면 바로 사용
+            // 시간 변경 여부 확인 (date, offsetMinutes)
+            boolean isTimeChanged = !todo.getDate().equals(newDate)
+                    || todo.getOffsetMinutes() != (request.getOffsetMinutes() != null ? request.getOffsetMinutes() : 0);
+
+            // 값 업데이트
+            todo.setTitle(request.getTitle());
+            todo.setDescription(request.getDescription());
+            todo.setUrl(request.getUrl());
+            todo.setDate(request.getDate());
+            todo.setStatus(request.getStatus() != null ? PrivateTodo.TodoStatus.valueOf(request.getStatus()) : PrivateTodo.TodoStatus.IN_PROGRESS);
+            todo.setOffsetMinutes(request.getOffsetMinutes() != null ? request.getOffsetMinutes() : 0);
+            todo.setOrderNo(request.getOrderNo() != null ? request.getOrderNo() : 0);
+
+            todo = privateTodoRepository.save(todo);
+
+            // 시간 변경 시 알림 재등록
+            if (isTimeChanged) {
+                privateReminderService.handlePrivateTodoTimeChange(todo);
+            }
+
+            return TodoResponse.fromPrivateTodo(todo);
+        }
+        else if ("EVENT".equalsIgnoreCase(request.getType())) {
+            if (request.getEventId() == null) {
+                throw new BusinessException(HttpStatus.BAD_REQUEST, "EVENT_ID_REQUIRED", "이벤트 ID가 필요합니다.");
+            }
+
+            // Event TODO 조회
+            EventTodo todo = eventTodoRepository.findById(todoId)
+                    .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "TODO_NOT_FOUND", "TODO를 찾을 수 없습니다."));
+
+            // 프로젝트 멤버 확인
+            boolean isMember = projectMemberRepository.existsByProjectIdAndUserIdAndStatus(projectId, userId, ProjectMember.MemberStatus.ACTIVE);
+            if (!isMember) {
+                throw new BusinessException(HttpStatus.FORBIDDEN, "FORBIDDEN", "프로젝트 멤버만 수정할 수 있습니다.");
+            }
+
+            // 이벤트와 프로젝트 일치 확인
+            Event event = eventRepository.findById(request.getEventId())
+                    .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "EVENT_NOT_FOUND", "이벤트를 찾을 수 없습니다."));
+            if (!event.getProject().getId().equals(projectId) || !todo.getEventId().equals(request.getEventId())) {
+                throw new BusinessException(HttpStatus.BAD_REQUEST, "INVALID_RELATION", "이 TODO는 해당 이벤트에 속하지 않습니다.");
+            }
+
+            // 값 업데이트
+            todo.setTitle(request.getTitle());
+            todo.setDescription(request.getDescription());
+            todo.setUrl(request.getUrl());
+            todo.setStatus(request.getStatus() != null ? EventTodo.TodoStatus.valueOf(request.getStatus()) : EventTodo.TodoStatus.IN_PROGRESS);
+            todo.setOffsetMinutes(request.getOffsetMinutes() != null ? request.getOffsetMinutes() : 0);
+            todo.setOrderNo(request.getOrderNo() != null ? request.getOrderNo() : 0);
+
+            todo = eventTodoRepository.save(todo);
+            return TodoResponse.fromEventTodo(todo);
         }
 
-        String requestedType = request.getType().toUpperCase();
-
-        // 3. 타입이 변경되었는지 확인
-        boolean typeChanged = !originalType.equalsIgnoreCase(requestedType);
-
-        // --- 타입 변경이 없는 경우: 단순 필드 업데이트 ---
-        if (!typeChanged) {
-            if ("PRIVATE".equalsIgnoreCase(requestedType)) {
-                PrivateTodo todo = privateTodoOpt.get();
-                // 권한 확인
-                if (!todo.getProjectId().equals(projectId) || !todo.getOwnerId().equals(userId)) {
-                    throw new BusinessException(HttpStatus.FORBIDDEN, "FORBIDDEN", "본인 TODO만 수정할 수 있습니다.");
-                }
-
-                // [수정] NullPointerException 방지를 위해 Objects.equals 사용
-                boolean dateChanged = !java.util.Objects.equals(todo.getDate(), request.getDate());
-                boolean offsetChanged = !java.util.Objects.equals(todo.getOffsetMinutes(), request.getOffsetMinutes());
-                boolean isTimeChanged = dateChanged || offsetChanged;
-
-                // 값 업데이트
-                todo.setTitle(request.getTitle());
-                todo.setDescription(request.getDescription());
-                todo.setUrl(request.getUrl());
-                todo.setDate(request.getDate());
-                todo.setStatus(request.getStatus() != null ? PrivateTodo.TodoStatus.valueOf(request.getStatus()) : todo.getStatus());
-                todo.setOffsetMinutes(request.getOffsetMinutes());
-                todo.setOrderNo(request.getOrderNo());
-
-                PrivateTodo updatedTodo = privateTodoRepository.save(todo);
-
-                if (isTimeChanged) {
-                    privateReminderService.handlePrivateTodoTimeChange(updatedTodo);
-                }
-                return TodoResponse.fromPrivateTodo(updatedTodo);
-            } else { // "EVENT"
-                EventTodo todo = eventTodoOpt.get();
-                // 권한 확인
-                boolean isMember = projectMemberRepository.existsByProjectIdAndUserIdAndStatus(projectId, userId, ProjectMember.MemberStatus.ACTIVE);
-                if (!isMember) {
-                    throw new BusinessException(HttpStatus.FORBIDDEN, "FORBIDDEN", "프로젝트 멤버만 수정할 수 있습니다.");
-                }
-                if (request.getEventId() == null || !todo.getEventId().equals(request.getEventId())) {
-                    throw new BusinessException(HttpStatus.BAD_REQUEST, "EVENT_ID_MISMATCH", "Event Todo의 소속 이벤트는 변경할 수 없습니다.");
-                }
-
-                // 값 업데이트
-                todo.setTitle(request.getTitle());
-                todo.setDescription(request.getDescription());
-                todo.setUrl(request.getUrl());
-                todo.setStatus(request.getStatus() != null ? EventTodo.TodoStatus.valueOf(request.getStatus()) : todo.getStatus());
-                todo.setOffsetMinutes(request.getOffsetMinutes());
-                todo.setOrderNo(request.getOrderNo());
-
-                EventTodo updatedTodo = eventTodoRepository.save(todo);
-                return TodoResponse.fromEventTodo(updatedTodo);
-            }
-        }
-        // --- 타입 변경이 있는 경우: 기존 TODO 삭제 후, 새 타입으로 생성 ---
-        else {
-            // Case 1: Private -> Event 로 변경
-            if ("PRIVATE".equalsIgnoreCase(originalType) && "EVENT".equalsIgnoreCase(requestedType)) {
-                PrivateTodo oldTodo = privateTodoOpt.get();
-                // 권한 확인
-                if (!oldTodo.getProjectId().equals(projectId) || !oldTodo.getOwnerId().equals(userId)) {
-                    throw new BusinessException(HttpStatus.FORBIDDEN, "FORBIDDEN", "본인 TODO만 수정할 수 있습니다.");
-                }
-                if (request.getEventId() == null) {
-                    throw new BusinessException(HttpStatus.BAD_REQUEST, "EVENT_ID_REQUIRED", "Event 타입으로 변경하려면 이벤트 ID가 필요합니다.");
-                }
-                // 대상 이벤트 검증
-                eventRepository.findById(request.getEventId())
-                        .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "EVENT_NOT_FOUND", "선택된 이벤트를 찾을 수 없습니다."));
-
-                // 1. 기존 PrivateTodo 삭제
-                privateTodoRepository.delete(oldTodo);
-
-                // 2. 새 EventTodo 생성
-                EventTodo newTodo = EventTodo.builder()
-                        .eventId(request.getEventId())
-                        .authorId(userId)
-                        .title(request.getTitle())
-                        .description(request.getDescription())
-                        .url(request.getUrl())
-                        .status(request.getStatus() != null ? EventTodo.TodoStatus.valueOf(request.getStatus()) : EventTodo.TodoStatus.IN_PROGRESS)
-                        .offsetMinutes(request.getOffsetMinutes())
-                        .orderNo(request.getOrderNo())
-                        .build();
-                EventTodo savedTodo = eventTodoRepository.save(newTodo);
-                return TodoResponse.fromEventTodo(savedTodo);
-            }
-            // Case 2: Event -> Private 로 변경
-            else if ("EVENT".equalsIgnoreCase(originalType) && "PRIVATE".equalsIgnoreCase(requestedType)) {
-                EventTodo oldTodo = eventTodoOpt.get();
-                // 권한 확인
-                boolean isMember = projectMemberRepository.existsByProjectIdAndUserIdAndStatus(projectId, userId, ProjectMember.MemberStatus.ACTIVE);
-                if (!isMember) {
-                    throw new BusinessException(HttpStatus.FORBIDDEN, "FORBIDDEN", "프로젝트 멤버만 수정할 수 있습니다.");
-                }
-                if (request.getDate() == null) {
-                    throw new BusinessException(HttpStatus.BAD_REQUEST, "DATE_REQUIRED", "Private 타입으로 변경하려면 날짜가 필요합니다.");
-                }
-
-                // 1. 기존 EventTodo 삭제
-                eventTodoRepository.delete(oldTodo);
-
-                // 2. 새 PrivateTodo 생성
-                PrivateTodo newTodo = PrivateTodo.builder()
-                        .projectId(projectId)
-                        .ownerId(userId)
-                        .title(request.getTitle())
-                        .description(request.getDescription())
-                        .url(request.getUrl())
-                        .date(request.getDate())
-                        .status(request.getStatus() != null ? PrivateTodo.TodoStatus.valueOf(request.getStatus()) : PrivateTodo.TodoStatus.IN_PROGRESS)
-                        .offsetMinutes(request.getOffsetMinutes())
-                        .orderNo(request.getOrderNo())
-                        .build();
-                PrivateTodo savedTodo = privateTodoRepository.save(newTodo);
-
-                // 새 PrivateTodo에 대한 알림 등록
-                privateReminderService.handlePrivateTodoTimeChange(savedTodo);
-                return TodoResponse.fromPrivateTodo(savedTodo);
-            }
-            // 이 외의 경우는 잘못된 요청
-            else {
-                throw new BusinessException(HttpStatus.BAD_REQUEST, "INVALID_TYPE_CHANGE", "유효하지 않은 타입 변경입니다.");
-            }
-        }
+        throw new BusinessException(HttpStatus.BAD_REQUEST, "INVALID_TYPE", "유효하지 않은 TODO 타입입니다. PRIVATE 또는 EVENT만 가능합니다.");
     }
-
 
     /*
         TODO 삭제
