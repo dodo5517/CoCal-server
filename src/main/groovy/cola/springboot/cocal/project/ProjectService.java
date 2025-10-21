@@ -166,6 +166,12 @@ public class ProjectService {
             );
         }
 
+        // 멤버인지 확인
+        Boolean exist = projectMemberRepository.existsByProjectIdAndUserIdAndStatus(projectId, userId, ProjectMember.MemberStatus.ACTIVE);
+        if (!exist) {
+            throw new BusinessException(HttpStatus.FORBIDDEN, "NO_MEMBERSHIP", "프로젝트 멤버가 아닙니다.");
+        }
+
         // 팀원 목록
         List<ProjectMember> members = projectMemberRepository.findActiveMembersWithUser(projectId);
         List<ProjectMemberInfoDto> memberDtos = members.stream()
