@@ -16,6 +16,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
+
 @RestController
 @RequestMapping("/api/projects")
 @RequiredArgsConstructor
@@ -23,7 +25,6 @@ public class ProjectController {
 
     private final ProjectService projectService;
     private final UserRepository userRepository;
-    private final ProjectRepository projectRepository;
 
     // 프로젝트 생성
     @PostMapping()
@@ -99,7 +100,7 @@ public class ProjectController {
 
     // project delete
     @DeleteMapping("/{projectId}")
-    public ResponseEntity<ApiResponse<String>> deleteProject(
+    public ResponseEntity<ApiResponse<Map<String, String>>> deleteProject(
             @PathVariable("projectId") Long projectId,
             Authentication authentication,
             HttpServletRequest httpReq) {
@@ -107,7 +108,8 @@ public class ProjectController {
         Long userId = Long.parseLong(authentication.getName());
         projectService.deleteProject(projectId, userId);
 
-        return ResponseEntity.ok(ApiResponse.ok("프로젝트가 삭제되었습니다.", httpReq.getRequestURI()));
+        Map<String, String> data = Map.of("message", "프로젝트가 삭제되었습니다.");
+        return ResponseEntity.ok(ApiResponse.ok(data, httpReq.getRequestURI()));
     }
 }
 
