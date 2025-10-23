@@ -64,6 +64,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/users").permitAll()
                         // OAuth2 로그인 진입/콜백 URL (소셜 로그인 필수 공개)
                         .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll()
+                        // WebSocket은 인증 없이 접근 가능 -> JWT 검증은 HandshakeInterceptor에서 별도로 처리함.
+                        .requestMatchers("/ws/**").permitAll()
                         // swagger
                         .requestMatchers(
                                 "/swagger-ui.html",
