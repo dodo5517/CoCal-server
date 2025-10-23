@@ -1,5 +1,7 @@
 package cola.springboot.cocal.config;
 
+import cola.springboot.cocal.common.security.JwtHandshakeInterceptor;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
@@ -9,7 +11,10 @@ import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerCo
 
 @Configuration
 @EnableWebSocketMessageBroker // STOMP 메시지 브로커를 활성화
+@RequiredArgsConstructor
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
+
+    private final JwtHandshakeInterceptor jwtHandshakeInterceptor;
 
     // 메시지 브로커 설정
     @Override
@@ -23,10 +28,11 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         // 예: /app/notify로 메시지를 보내면 서버의 @MessageMapping("/notify")가 처리
     }
 
-    // STOMP 엔드포인트 등록
+    // STOMP 엔드포인트 등록0
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         registry.addEndpoint("/ws") // 클라이언트가 연결할 WebSocket 엔드포인트
+                .addInterceptors(jwtHandshakeInterceptor)
                 .setAllowedOriginPatterns("*") // CORS 허용 (모든 도메인)
                 .withSockJS(); // SockJS fallback 사용 (WebSocket 지원 안 되는 브라우저용)
     }
