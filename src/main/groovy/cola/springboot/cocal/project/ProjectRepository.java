@@ -6,7 +6,11 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.Optional;
+
 public interface ProjectRepository extends JpaRepository<Project, Long> {
+    String findNameById(Long id);
+    Optional<Project> findById(Long id);
 
     // 내가 생성한 프로젝트 or 내가 초대 수락한 프로젝트 조회. 단, 내가 active인 프로잭트만
     @Query("""

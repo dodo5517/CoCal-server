@@ -3,6 +3,8 @@ package cola.springboot.cocal.notification;
 import cola.springboot.cocal.event.Event;
 import cola.springboot.cocal.event.EventRepository;
 import cola.springboot.cocal.eventMember.EventMemberRepository;
+import cola.springboot.cocal.project.Project;
+import cola.springboot.cocal.project.ProjectRepository;
 import cola.springboot.cocal.todo.private_todo.PrivateTodo;
 import cola.springboot.cocal.todo.private_todo.PrivateTodoRepository;
 import cola.springboot.cocal.user.User;
@@ -22,6 +24,7 @@ public class ReminderService {
     private final NotificationService notificationService;
     private final NotificationRepository notificationRepository;
     private final PrivateTodoRepository privateTodoRepository;
+    private final ProjectRepository projectRepository;
 
     // 1분마다 실행, event offsetMinutes 알림
     @Scheduled(fixedRate = 60000)
@@ -66,7 +69,9 @@ public class ReminderService {
                         "EVENT",
                         event.getId(),
                         "곧 시작하는 이벤트: " + event.getTitle(),
-                        message
+                        message,
+                        event.getProject(),
+                        event.getProject().getName()
                 );
             }
         }
@@ -87,12 +92,17 @@ public class ReminderService {
                     ? todo.getTitle() + " TODO가 지금 시작합니다."
                     : todo.getTitle() + " TODO가 " + todo.getOffsetMinutes() + "분 후 시작합니다.";
 
+            Project project = projectRepository.findById(todo.getProjectId())
+                    .orElse(null);
+
             notificationService.sendNotification(
                     todo.getOwnerId(),
                     "PRIVATE_TODO",
                     todo.getId(),
                     "곧 시작하는 TODO: " + todo.getTitle(),
-                    message
+                    message,
+                    project,
+                    projectRepository.findNameById(todo.getProjectId())
             );
         }
     }
@@ -119,7 +129,9 @@ public class ReminderService {
                     "EVENT",
                     event.getId(),
                     "곧 시작하는 이벤트: " + event.getTitle(),
-                    message
+                    message,
+                    event.getProject(),
+                    event.getProject().getName()
             );
         }
     }
@@ -135,12 +147,18 @@ public class ReminderService {
                 ? todo.getTitle() + " TODO가 지금 시작합니다."
                 : todo.getTitle() + " TODO가 " + todo.getOffsetMinutes() + "분 후 시작합니다.";
 
+
+        Project project = projectRepository.findById(todo.getProjectId())
+                .orElse(null);
+
         notificationService.sendNotification(
                 todo.getOwnerId(),
                 "PRIVATE_TODO",
                 todo.getId(),
                 "곧 시작하는 TODO: " + todo.getTitle(),
-                message
+                message,
+                project,
+                projectRepository.findNameById(todo.getProjectId())
         );
     }
 }

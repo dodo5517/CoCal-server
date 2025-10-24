@@ -7,6 +7,7 @@ import cola.springboot.cocal.invite.DTO.InviteCreateRequest;
 import cola.springboot.cocal.invite.DTO.InviteResolveResponse;
 import cola.springboot.cocal.invite.DTO.InviteResponse;
 import cola.springboot.cocal.notification.Notification;
+import cola.springboot.cocal.notification.NotificationResponse;
 import cola.springboot.cocal.notification.NotificationService;
 import cola.springboot.cocal.project.Project;
 import cola.springboot.cocal.project.ProjectRepository;
@@ -152,12 +153,14 @@ public class InviteService {
 
         // 알림 보내기: 초대받는 사람에게만
         if (type == Invite.InviteType.EMAIL) {
-            Notification notification = notificationService.sendNotification(
+            NotificationResponse notification = notificationService.sendNotification(
                     targetUser.get().getId(),
                     "INVITE",
                     saved.getId(),
                     "팀 초대 알림",
-                    inviter.getName() + "님이 '" + project.getName() + "' 프로젝트에 초대했습니다."
+                    inviter.getName() + "님이 '" + project.getName() + "' 프로젝트에 초대했습니다.",
+                    saved.getProject(),
+                    saved.getProject().getName()
             );
 
             System.out.println("Notification ID after flush: " + notification.getId());

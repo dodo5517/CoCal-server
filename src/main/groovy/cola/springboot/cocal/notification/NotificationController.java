@@ -17,20 +17,20 @@ public class NotificationController {
 
     // 읽지 않은 알림 조회
     @GetMapping("/unread")
-    public ResponseEntity<ApiResponse<List<Notification>>> getUnreadNotifications(Authentication auth,
+    public ResponseEntity<ApiResponse<List<NotificationResponse>>> getUnreadNotifications(Authentication auth,
                                                                                   HttpServletRequest req) {
         Long userId = Long.parseLong(auth.getName()); // JWT 등에서 로그인 사용자 ID 가져오기
-        List<Notification> notifications = notificationService.getUnreadNotifications(userId);
+        List<NotificationResponse> notifications = notificationService.getUnreadNotifications(userId);
         return ResponseEntity.ok(ApiResponse.ok(notifications, req.getRequestURI()));
     }
 
     // 특정 사용자의 읽지 않은 알림 조회
     @GetMapping("/unread/{userId}")
-    public ResponseEntity<ApiResponse<List<Notification>>> getUnread(
+    public ResponseEntity<ApiResponse<List<NotificationResponse>>> getUnread(
             @PathVariable("userId") Long userId,
             HttpServletRequest req)
     {
-        List<Notification> notifications = notificationService.getUnreadNotifications(userId);
+        List<NotificationResponse> notifications = notificationService.getUnreadNotifications(userId);
         return ResponseEntity.ok(ApiResponse.ok(notifications, req.getRequestURI()));
     }
 

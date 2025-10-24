@@ -1,6 +1,7 @@
 package cola.springboot.cocal.notification;
 
 import cola.springboot.cocal.common.exception.BusinessException;
+import cola.springboot.cocal.project.Project;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -17,23 +18,27 @@ public class NotificationService {
 
     // 알림 생성 후 실시간 전송
     @Transactional
-    public Notification sendNotification(Long userId, String type, Long referenceId, String title, String message) {
+    public NotificationResponse sendNotification(Long userId, String type, Long referenceId, String title, String message, Project project, String projectName) {
         Notification notification = Notification.builder()
                 .userId(userId)
                 .type(type)
                 .referenceId(referenceId)
                 .title(title)
                 .message(message)
+                .project(project) // 없으면 null로 받아옴
+                .projectName(projectName)
                 .isRead(false)
                 .build();
 
         // DB 저장
         notificationRepository.save(notification);
 
+        NotificationResponse response = NotificationResponse.fromEntity(notification);
+
         // WebSocket으로 실시간 전송
         messagingTemplate.convertAndSend("/topic/notifications/" + userId, notification);
 
-        return notification;
+        return response;
     }
 
     // 알림 읽음 처리
@@ -55,8 +60,11 @@ public class NotificationService {
     }
 
     // 사용자 읽지 않은 알림 조회
-    public List<Notification> getUnreadNotifications(Long userId) {
-        return notificationRepository.findAllByUserIdAndIsReadFalse(userId);
+    public List<NotificationResponse> getUnreadNotifications(Long userId) {
+        List<Notification> notifications = notificationRepository.findAllByUserIdAndIsReadFalse(userId);
+        return notifications.stream()
+                .map(NotificationResponse::fromEntity)
+                .toList();
     }
 
     // 전체 읽기
