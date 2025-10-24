@@ -27,10 +27,11 @@ public class ReminderService {
     private final ProjectRepository projectRepository;
 
     // 1분마다 실행, event offsetMinutes 알림
+    @Transactional
     @Scheduled(fixedRate = 60000)
     public void sendEventReminders() {
         LocalDateTime now = LocalDateTime.now();
-        /*System.out.println("Checking events at: " + now);*/
+        System.out.println("Checking events at: " + now);
 
         // offset 기준으로 1분 이내 시작하는 이벤트 찾기
         // repository 쿼리에서 startAt - offsetMinutes 기준으로 1분 범위 내 이벤트 조회
