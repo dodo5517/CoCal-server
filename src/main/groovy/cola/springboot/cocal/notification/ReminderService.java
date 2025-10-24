@@ -62,8 +62,8 @@ public class ReminderService {
 
                 // 팀원에게 알림 전송
                 String message = event.getOffsetMinutes() == 0
-                        ? event.getTitle() + " 이벤트가 지금 시작합니다."
-                        : event.getTitle() + " 이벤트가 " + event.getOffsetMinutes() + "분 후 시작합니다.";
+                        ? "이벤트가 지금 시작합니다."
+                        : "이벤트가 '" + event.getOffsetMinutes() + "분 후' 시작합니다.";
 
                 notificationService.sendNotification(
                         member.getId(),
