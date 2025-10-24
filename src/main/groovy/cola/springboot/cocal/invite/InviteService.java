@@ -6,7 +6,7 @@ import cola.springboot.cocal.invite.Invite.InviteType;
 import cola.springboot.cocal.invite.DTO.InviteCreateRequest;
 import cola.springboot.cocal.invite.DTO.InviteResolveResponse;
 import cola.springboot.cocal.invite.DTO.InviteResponse;
-import cola.springboot.cocal.notification.Notification;
+import cola.springboot.cocal.notification.NotificationRepository;
 import cola.springboot.cocal.notification.NotificationResponse;
 import cola.springboot.cocal.notification.NotificationService;
 import cola.springboot.cocal.project.Project;
@@ -41,6 +41,7 @@ public class InviteService {
     private static final int DEFAULT_EXPIRE_DAYS = 7;
     private static final SecureRandom RNG = new SecureRandom();
     private static final HexFormat HEX = HexFormat.of();
+    private final NotificationRepository notificationRepository;
 
     // 토큰 생성기
     private String newToken() {
@@ -229,7 +230,7 @@ public class InviteService {
 
     // 초대함에서 초대 수락
     @Transactional
-    public void acceptInvite(Long inviteId, Long userId) {
+    public Long acceptInvite(Long inviteId, Long userId) {
         Invite invite = inviteRepository.findById(inviteId)
                 .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "INVITE_NOT_FOUND", "초대를 찾을 수 없습니다."));
 
@@ -257,11 +258,14 @@ public class InviteService {
                 .build();
 
         projectMemberRepository.save(member);
+
+        // 알림id 반환
+        return notificationRepository.findIdByUserIdAndReferenceIdAndType(userId, inviteId,"INVITE");
     }
 
     // 초대함에서 초대 거절
     @Transactional
-    public void declineInvite(Long inviteId, Long userId) {
+    public Long declineInvite(Long inviteId, Long userId) {
         Invite invite = inviteRepository.findById(inviteId)
                 .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "INVITE_NOT_FOUND", "초대를 찾을 수 없습니다."));
 
@@ -277,6 +281,9 @@ public class InviteService {
 
         // 초대 상태 업데이트
         invite.setStatus(InviteStatus.DECLINED);
+
+        // 알림id 반환
+        return notificationRepository.findIdByUserIdAndReferenceIdAndType(userId, inviteId,"INVITE");
     }
 
     // 초대 링크 확인 후 정보 조회

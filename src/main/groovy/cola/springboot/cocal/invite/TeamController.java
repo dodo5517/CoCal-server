@@ -6,6 +6,7 @@ import cola.springboot.cocal.invite.DTO.InviteListRequest;
 import cola.springboot.cocal.invite.DTO.InviteListResponse;
 import cola.springboot.cocal.invite.DTO.InviteResponse;
 import cola.springboot.cocal.invite.DTO.MemberListDto.MemberListResponse;
+import cola.springboot.cocal.notification.NotificationService;
 import cola.springboot.cocal.projectMember.MemberListQueryService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
@@ -26,6 +27,7 @@ public class TeamController {
     private final InviteService inviteService;
     private final InviteQueryService inviteQueryService;
     private final MemberListQueryService memberListQueryService;
+    private final NotificationService notificationService;
 
     // 이메일로 초대 생성
     @PostMapping("/{projectId}/invites-email")
@@ -88,8 +90,10 @@ public class TeamController {
             HttpServletRequest req
     ) {
         Long userId = Long.parseLong(auth.getName());
-        inviteService.acceptInvite(inviteId, userId);
+        Long notificationId = inviteService.acceptInvite(inviteId, userId);
         Map<String, String> data = Map.of("message", "초대를 수락했습니다.");
+        // 알림 읽음 처리
+        notificationService.markAsRead(userId, notificationId);
         return ResponseEntity.ok(ApiResponse.ok(data, req.getRequestURI()));
     }
 
@@ -101,8 +105,10 @@ public class TeamController {
             HttpServletRequest req
     ) {
         Long userId = Long.parseLong(auth.getName());
-        inviteService.declineInvite(inviteId, userId);
+        Long notificationId = inviteService.declineInvite(inviteId, userId);
         Map<String, String> data = Map.of("message", "초대를 거절했습니다.");
+        // 알림 읽음 처리
+        notificationService.markAsRead(userId, notificationId);
         return ResponseEntity.ok(ApiResponse.ok(data, req.getRequestURI()));
     }
 }
