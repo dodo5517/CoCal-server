@@ -30,7 +30,10 @@ public class NotificationResponse {
                 .message(n.getMessage())
                 .referenceId(n.getReferenceId())
                 .projectId(n.getProject() != null ? n.getProject().getId() : null)
-                .projectName(n.getProjectName() != null ? n.getProject().getName() : null)
+                .projectName(
+                    n.getProjectName() != null ? n.getProjectName() :
+                        (n.getProject() != null ? n.getProject().getName() : "")
+                )
                 .isRead(n.getIsRead())
                 .sentAt(n.getSentAt())
                 .build();
