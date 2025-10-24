@@ -1,5 +1,6 @@
 package cola.springboot.cocal.notification;
 
+import cola.springboot.cocal.project.Project;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -19,6 +20,9 @@ public class Notification {
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
+    @Column(name = "project_id", nullable = true)
+    private Long projectId;
+
     @Column(nullable = false)
     private String type;
 
@@ -29,6 +33,13 @@ public class Notification {
 
     @Column(columnDefinition = "TEXT")
     private String message;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "project_id", foreignKey = @ForeignKey(name = "fk_notifications_project"))
+    private Project project;
+
+    @Column(name = "project_name", length = 255)
+    private String projectName;
 
     @Builder.Default
     @Column(name = "sent_at", nullable = false, updatable = false)
