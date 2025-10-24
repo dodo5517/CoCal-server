@@ -20,9 +20,6 @@ public class Notification {
     @Column(name = "user_id", nullable = false)
     private Long userId;
 
-    @Column(name = "project_id", nullable = true)
-    private Long projectId;
-
     @Column(nullable = false)
     private String type;
 
