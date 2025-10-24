@@ -36,7 +36,7 @@ public class NotificationService {
         NotificationResponse response = NotificationResponse.fromEntity(notification);
 
         // WebSocket으로 실시간 전송
-        messagingTemplate.convertAndSend("/topic/notifications/" + userId, notification);
+        messagingTemplate.convertAndSend("/topic/notifications/" + userId, response);
 
         return response;
     }
