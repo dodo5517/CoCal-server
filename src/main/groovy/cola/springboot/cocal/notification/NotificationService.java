@@ -6,40 +6,73 @@ import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
-import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import java.io.IOException;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 @RequiredArgsConstructor
 public class NotificationService {
+
     private final NotificationRepository notificationRepository;
-    private final SimpMessagingTemplate messagingTemplate; // WebSocket용
+    // SSE용 emitter 저장소
+    private final Map<Long, SseEmitter> emitters = new ConcurrentHashMap<>();
+
+    public SseEmitter subscribe(Long userId) {
+        SseEmitter emitter = new SseEmitter(60L * 1000 * 10); // 10분 타임아웃
+        emitters.put(userId, emitter);
+
+        emitter.onCompletion(() -> emitters.remove(userId));
+        emitter.onTimeout(() -> emitters.remove(userId));
+
+        // 연결 직후 간단한 ping 이벤트
+        try {
+            emitter.send(SseEmitter.event().name("connect").data("connected"));
+        } catch (IOException e) {
+            emitter.completeWithError(e);
+        }
+
+        return emitter;
+    }
 
     // 알림 생성 후 실시간 전송
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public NotificationResponse sendNotification(Long userId, String type, Long referenceId, String title, String message, Project project, String projectName) {
+    public NotificationResponse sendNotification(Long userId, String type, Long referenceId,
+                                                 String title, String message,
+                                                 Project project, String projectName) {
+
         Notification notification = Notification.builder()
                 .userId(userId)
                 .type(type)
                 .referenceId(referenceId)
                 .title(title)
                 .message(message)
-                .project(project) // 없으면 null로 받아옴
+                .project(project)
                 .projectName(projectName)
                 .isRead(false)
                 .build();
 
-        // DB 저장
         notificationRepository.saveAndFlush(notification);
 
         NotificationResponse response = NotificationResponse.fromEntity(notification);
 
-        // WebSocket으로 실시간 전송
-        messagingTemplate.convertAndSend("/topic/notifications/" + userId, response);
+        // SSE로 전송
+        SseEmitter emitter = emitters.get(userId);
+        if (emitter != null) {
+            try {
+                emitter.send(SseEmitter.event()
+                        .name("notification")
+                        .data(response));
+            } catch (IOException e) {
+                emitters.remove(userId);
+            }
+        }
 
         return response;
     }

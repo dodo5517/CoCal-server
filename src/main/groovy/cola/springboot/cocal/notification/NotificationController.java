@@ -1,11 +1,15 @@
 package cola.springboot.cocal.notification;
 
 import cola.springboot.cocal.common.api.ApiResponse;
+import cola.springboot.cocal.common.exception.BusinessException;
+import cola.springboot.cocal.common.security.JwtTokenProvider;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.util.List;
 
@@ -14,6 +18,22 @@ import java.util.List;
 @RequiredArgsConstructor
 public class NotificationController {
     private final NotificationService notificationService;
+    private final JwtTokenProvider jwtTokenProvider;
+
+    @GetMapping("/subscribe")
+    public SseEmitter subscribe(HttpServletRequest request) {
+        String token = request.getParameter("token");
+        if (token == null || token.isBlank()) {
+            throw new BusinessException(HttpStatus.UNAUTHORIZED, "TOKEN_MISSING", "토큰이 없습니다.");
+        }
+
+        if (!jwtTokenProvider.isValid(token)) {
+            throw new BusinessException(HttpStatus.UNAUTHORIZED, "INVALID_TOKEN", "유효하지 않은 토큰입니다.");
+        }
+
+        Long userId = jwtTokenProvider.getUserId(token);
+        return notificationService.subscribe(userId);
+    }
 
     // 읽지 않은 알림 조회
     @GetMapping("/unread")
