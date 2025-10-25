@@ -3,9 +3,12 @@ package cola.springboot.cocal.notification;
 import cola.springboot.cocal.common.exception.BusinessException;
 import cola.springboot.cocal.project.Project;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -17,7 +20,7 @@ public class NotificationService {
     private final SimpMessagingTemplate messagingTemplate; // WebSocket용
 
     // 알림 생성 후 실시간 전송
-    @Transactional
+    @Transactional(propagation = Propagation.REQUIRES_NEW)
     public NotificationResponse sendNotification(Long userId, String type, Long referenceId, String title, String message, Project project, String projectName) {
         Notification notification = Notification.builder()
                 .userId(userId)
@@ -31,7 +34,7 @@ public class NotificationService {
                 .build();
 
         // DB 저장
-        notificationRepository.save(notification);
+        notificationRepository.saveAndFlush(notification);
 
         NotificationResponse response = NotificationResponse.fromEntity(notification);
 

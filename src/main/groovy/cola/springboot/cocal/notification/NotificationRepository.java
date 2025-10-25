@@ -17,6 +17,9 @@ public interface NotificationRepository extends JpaRepository<Notification, Long
 
     void deleteAllByReferenceIdAndTypeAndIsReadFalse(Long referenceId, String type);
 
+    // 특정 유저, 특정 프로젝트, 특정 타입의 알림 삭제(초대 알림 삭제 시 사용)
+    void deleteByUserIdAndProjectIdAndType(Long userId, Long referenceId, String type);
+
     // 초대 수락/거절 시 사용할 알림id 조회 쿼리
     @Query("SELECT n.id FROM Notification n WHERE n.userId = :userId AND n.referenceId = :referenceId AND n.type = :type")
     Long findIdByUserIdAndReferenceIdAndType(@Param("userId") Long userId,

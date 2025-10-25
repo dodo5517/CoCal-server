@@ -15,11 +15,12 @@ import cola.springboot.cocal.projectMember.ProjectMember;
 import cola.springboot.cocal.projectMember.ProjectMemberRepository;
 import cola.springboot.cocal.user.User;
 import cola.springboot.cocal.user.UserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.w3c.dom.views.AbstractView;
 
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
@@ -42,6 +43,7 @@ public class InviteService {
     private static final SecureRandom RNG = new SecureRandom();
     private static final HexFormat HEX = HexFormat.of();
     private final NotificationRepository notificationRepository;
+    private static final Logger log = LoggerFactory.getLogger(InviteService.class);
 
     // 토큰 생성기
     private String newToken() {
@@ -120,8 +122,8 @@ public class InviteService {
 
             switch (targetInv.getStatus()) {
                 case PENDING -> {
-                    // 만료되지 않았으면 기존 초대 재사용
-                    if (targetInv.getExpiresAt() == null || targetInv.getExpiresAt().isAfter(LocalDateTime.now())) {
+                    //  만료되지 않았으면 기존 초대 재사용
+                    if (targetInv.getExpiresAt() ==null || targetInv.getExpiresAt().isAfter(LocalDateTime.now())) {
                         return InviteResponse.of(targetInv,null);
                     }
                     // 만료된 요청은 EXPIRED 설정
@@ -134,8 +136,8 @@ public class InviteService {
                     return InviteResponse.of(saved,null);
                 }
                 case CANCEL, EXPIRED, DECLINED -> {
-                    Invite saved = saveNewInvite(project, type, email, inviter, req.getExpireDays());
-                    return InviteResponse.of(saved,null);
+                    // 기존 알림 삭제(읽지 않았다는 가정하에)
+                    notificationRepository.deleteByUserIdAndProjectIdAndType(targetUser.get().getId(), targetInv.getProject().getId(), "INVITE");
                 }
                 case ACCEPTED -> throw new BusinessException(
                         HttpStatus.CONFLICT,
@@ -149,9 +151,8 @@ public class InviteService {
                 );
             }
         }
-        // 기존 초대가 없는 경우 새 초대 생성
+        // 기존 초대가 없는 경우 새 초대 생성(또는 CANCEL, EXPIRED, DECLINED일 경우)
         Invite saved = saveNewInvite(project, type, email, inviter, req.getExpireDays());
-
         // 알림 보내기: 초대받는 사람에게만
         if (type == Invite.InviteType.EMAIL) {
             NotificationResponse notification = notificationService.sendNotification(
@@ -181,7 +182,7 @@ public class InviteService {
                 .updatedAt(LocalDateTime.now())
                 .createdAt(LocalDateTime.now())
                 .build();
-        return inviteRepository.save(newInv);
+        return inviteRepository.saveAndFlush(newInv);
     }
 
     // 활성 링크 있는지 확인
