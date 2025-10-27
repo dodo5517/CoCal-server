@@ -207,6 +207,7 @@ public class UserService {
         response.put("provider", user.getProvider().name());
         response.put("profileImageUrl", user.getProfileImageUrl()); // null 허용
         response.put("userStatus", user.getUserStatus().name());
+        response.put("defaultView", user.getDefaultView());
 
         return response;
     }
