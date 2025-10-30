@@ -154,18 +154,22 @@ public class InviteService {
         // 기존 초대가 없는 경우 새 초대 생성(또는 CANCEL, EXPIRED, DECLINED일 경우)
         Invite saved = saveNewInvite(project, type, email, inviter, req.getExpireDays());
         // 알림 보내기: 초대받는 사람에게만
-        if (type == Invite.InviteType.EMAIL) {
-            NotificationResponse notification = notificationService.sendNotification(
-                    targetUser.get().getId(),
-                    "INVITE",
-                    saved.getId(),
-                    "팀 초대 알림",
-                    inviter.getName() + "님이 '" + project.getName() + "' 프로젝트에 초대했습니다.",
-                    saved.getProject(),
-                    saved.getProject().getName()
-            );
+        try {
+            if (type == Invite.InviteType.EMAIL) {
+                NotificationResponse notification = notificationService.sendNotification(
+                        targetUser.get().getId(),
+                        "INVITE",
+                        saved.getId(),
+                        "팀 초대 알림",
+                        inviter.getName() + "님이 '" + project.getName() + "' 프로젝트에 초대했습니다.",
+                        saved.getProject(),
+                        saved.getProject().getName()
+                );
 
-            System.out.println("Notification ID after flush: " + notification.getId());
+                System.out.println("Notification ID after flush: " + notification.getId());
+            }
+        } catch (RuntimeException e) {
+            log.error("알림 발송 실패: {}", e.getMessage());
         }
 
         return InviteResponse.of(saved,null);
