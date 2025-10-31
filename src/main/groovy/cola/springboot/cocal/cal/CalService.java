@@ -1,5 +1,6 @@
 package cola.springboot.cocal.cal;
 
+import cola.springboot.cocal.cal.DTO.ActiveDaysResponse;
 import cola.springboot.cocal.cal.DTO.CalItemResponse;
 import cola.springboot.cocal.cal.DTO.CalTodoResponse;
 import cola.springboot.cocal.common.exception.BusinessException;
@@ -9,6 +10,7 @@ import cola.springboot.cocal.event.dto.EventResponse;
 import cola.springboot.cocal.eventLink.LinkItem;
 import cola.springboot.cocal.eventLink.EventLinkRepository;
 import cola.springboot.cocal.eventMember.EventMemberRepository;
+import cola.springboot.cocal.invite.InviteRepository;
 import cola.springboot.cocal.memo.DTO.MemoMapper;
 import cola.springboot.cocal.memo.DTO.MemoResponse;
 import cola.springboot.cocal.memo.Memo;
@@ -21,6 +23,7 @@ import cola.springboot.cocal.todo.event_todo.EventTodo;
 import cola.springboot.cocal.todo.event_todo.EventTodoRepository;
 import cola.springboot.cocal.todo.private_todo.PrivateTodoRepository;
 import cola.springboot.cocal.user.User;
+import cola.springboot.cocal.user.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -43,6 +46,9 @@ public class CalService {
     private final EventLinkRepository eventLinkRepository;
     private final EventMemberRepository eventMemberRepository;
     private final MemoRepository memoRepository;
+    private final CalendarRepository calendarRepository;
+    private final UserRepository userRepository;
+    private final InviteRepository inviteRepository;
 
     // event, memo 조회(calendar 화면에서)
     @Transactional(readOnly = true)
@@ -147,5 +153,40 @@ public class CalService {
         allTodos.addAll(eventTodoResponses);
 
         return allTodos;
+    }
+
+
+    public ActiveDaysResponse getActiveDays(Long userId, Long projectId, int year, int month) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException(
+                        HttpStatus.NOT_FOUND,
+                        "USER_NOT_FOUND",
+                        "사용자를 찾을 수 없습니다."
+                ));
+
+        Project project = projectRepository.findById(projectId)
+                .orElseThrow(() -> new BusinessException(
+                        HttpStatus.NOT_FOUND,
+                        "PROJECT_NOT_FOUND",
+                        "존재하지 않는 프로젝트입니다."
+                ));
+
+        // 소유자 이거나 초대 받은 사용자 중 수락한 경우만
+        boolean isOwner = project.getOwner().getId().equals(userId);
+        boolean isAcceptedInvitee = inviteRepository.existsAcceptedInvite(projectId, user.getEmail());
+
+        LocalDate monthStart = LocalDate.of(year, month, 1);
+        LocalDate monthEnd = monthStart.plusMonths(1).minusDays(1);
+
+        if (!isOwner && !isAcceptedInvitee) {
+            throw new BusinessException(
+                    HttpStatus.FORBIDDEN,
+                    "FORBIDDEN",
+                    "프로젝트 접근 권한이 없습니다."
+            );
+        }
+
+        List<Integer> days = calendarRepository.findActiveDaysByProject(projectId, monthStart, monthEnd, year, month);
+        return new ActiveDaysResponse(days);
     }
 }
