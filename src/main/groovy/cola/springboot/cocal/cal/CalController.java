@@ -1,5 +1,6 @@
 package cola.springboot.cocal.cal;
 
+import cola.springboot.cocal.cal.DTO.ActiveDaysResponse;
 import cola.springboot.cocal.cal.DTO.CalItemResponse;
 import cola.springboot.cocal.cal.DTO.CalTodoResponse;
 import cola.springboot.cocal.common.api.ApiResponse;
@@ -7,11 +8,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -46,6 +43,18 @@ public class CalController {
         // 2. Service 호출
         List<CalTodoResponse> todos = calService.getTodosForCalendar(userId, projectId);
         return ResponseEntity.ok(ApiResponse.ok(todos, httpReq.getRequestURI()));
+    }
+
+    @GetMapping("/active-days")
+    public ResponseEntity<ActiveDaysResponse> getActiveDays(
+            @PathVariable("projectId") Long projectId,
+            @RequestParam("year") int year,
+            @RequestParam("month") int month,
+            Authentication authentication
+    ) {
+        Long userId = Long.parseLong(authentication.getName());
+        ActiveDaysResponse response = calService.getActiveDays(userId, projectId, year, month);
+        return ResponseEntity.ok(response);
     }
 
 }
