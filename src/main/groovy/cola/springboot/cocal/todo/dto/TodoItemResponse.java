@@ -25,6 +25,7 @@ public class TodoItemResponse {
 
     // ✅ 새로 추가
     private LocalDateTime date;
+    private Integer offsetMinutes;
 
     public static TodoItemResponse fromEntity(PrivateTodo t) {
         return TodoItemResponse.builder()
@@ -36,6 +37,7 @@ public class TodoItemResponse {
                 .orderNo(t.getOrderNo())
                 .url(t.getUrl())
                 .date(t.getDate()) // ✅ 추가
+                .offsetMinutes(t.getOffsetMinutes())
                 .build();
     }
 
