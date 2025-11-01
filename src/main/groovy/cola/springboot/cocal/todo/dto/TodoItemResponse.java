@@ -6,6 +6,8 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Builder;
 import lombok.Getter;
 
+import java.time.LocalDateTime;
+
 @Getter
 @Builder
 @JsonInclude(JsonInclude.Include.NON_NULL) // null 필드 제외하고 보냄(개인todo는 안 보냄.)
@@ -21,6 +23,9 @@ public class TodoItemResponse {
     private Long eventId;
     private Long authorId;
 
+    // ✅ 새로 추가
+    private LocalDateTime date;
+
     public static TodoItemResponse fromEntity(PrivateTodo t) {
         return TodoItemResponse.builder()
                 .id(t.getId())
@@ -30,6 +35,7 @@ public class TodoItemResponse {
                 .authorId(t.getOwnerId())
                 .orderNo(t.getOrderNo())
                 .url(t.getUrl())
+                .date(t.getDate()) // ✅ 추가
                 .build();
     }
 
