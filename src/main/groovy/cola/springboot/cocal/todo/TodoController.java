@@ -1,14 +1,18 @@
 package cola.springboot.cocal.todo;
 
 import cola.springboot.cocal.common.api.ApiResponse;
+import cola.springboot.cocal.todo.dto.TodoListResponse;
 import cola.springboot.cocal.todo.dto.TodoRequest;
 import cola.springboot.cocal.todo.dto.TodoResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDate;
 
 @RestController
 @RequiredArgsConstructor
@@ -50,6 +54,19 @@ public class TodoController {
         return ResponseEntity.ok(ApiResponse.ok(response, httpReq.getRequestURI()));
     }
 
+    // 해당 날짜의 개인 TODO 조회
+    @GetMapping("/todos")
+    public ResponseEntity<ApiResponse<TodoListResponse>> getPrivateDateTodo(
+            @PathVariable("projectId") Long projectId,
+            @RequestParam("date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            Authentication authentication,
+            HttpServletRequest httpReq
+    ) {
+        Long userId = Long.parseLong(authentication.getName());
+        TodoListResponse response = todoService.getPrivateDateTodo(projectId, userId, date);
+        return ResponseEntity.ok(ApiResponse.ok(response, httpReq.getRequestURI()));
+    }
+
     // 이벤트 TODO 단건 조회
     @GetMapping("/events/{eventId}/todos/{todoId}")
     public ResponseEntity<ApiResponse<TodoResponse>> getEventTodo(
@@ -61,6 +78,33 @@ public class TodoController {
     ) {
         Long userId = Long.parseLong(authentication.getName());
         TodoResponse response = todoService.getEventTodo(projectId, userId, eventId, todoId);
+        return ResponseEntity.ok(ApiResponse.ok(response, httpReq.getRequestURI()));
+    }
+
+    // 해당 날짜의 이벤트 TODO 조회
+    @GetMapping("/events/todos")
+    public ResponseEntity<ApiResponse<TodoListResponse>> getEventDateTodo(
+            @PathVariable("projectId") Long projectId,
+            @RequestParam("date") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date,
+            Authentication authentication,
+            HttpServletRequest httpReq
+    ) {
+        Long userId = Long.parseLong(authentication.getName());
+
+        TodoListResponse response = todoService.getEventDateTodo(projectId, userId, date);
+        return ResponseEntity.ok(ApiResponse.ok(response, httpReq.getRequestURI()));
+    }
+
+    // 해당 이벤트에 종속된 이벤트 TODO 모두 조회
+    @GetMapping("/events/{eventId}/todos")
+    public ResponseEntity<ApiResponse<TodoListResponse>> getEventTodo(
+            @PathVariable("projectId") Long projectId,
+            @PathVariable("eventId") Long eventId,
+            Authentication authentication,
+            HttpServletRequest httpReq
+    ) {
+        Long userId = Long.parseLong(authentication.getName());
+        TodoListResponse response = todoService.getEventTodoAll(projectId, userId, eventId);
         return ResponseEntity.ok(ApiResponse.ok(response, httpReq.getRequestURI()));
     }
 

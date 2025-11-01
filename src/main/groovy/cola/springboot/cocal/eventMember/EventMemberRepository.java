@@ -9,7 +9,7 @@ import java.util.List;
 
 public interface EventMemberRepository extends JpaRepository<EventMember, EventMemberId> {
     boolean existsById_EventIdAndId_UserId(Long eventId, Long userId);
-
+    void deleteByEventId(Long eventId);
     void deleteById_EventIdAndId_UserId(Long eventId, Long userId);
 
     @Query("""

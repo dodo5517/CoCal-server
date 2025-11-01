@@ -2,20 +2,32 @@ package cola.springboot.cocal.common.exception;
 
 import cola.springboot.cocal.common.api.ApiError;
 import cola.springboot.cocal.common.api.ApiResponse;
+import groovy.util.logging.Slf4j;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.core.Ordered;
+import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.messaging.handler.annotation.support.MethodArgumentTypeMismatchException;
 import org.springframework.validation.BindException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import java.time.format.DateTimeParseException;
 import java.util.Map;
 
 @RestControllerAdvice
+@Slf4j
+@Order(Ordered.LOWEST_PRECEDENCE)
 public class GlobalExceptionHandler {
+
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ApiResponse<?>> handleBusiness(BusinessException e, HttpServletRequest req) {
@@ -79,13 +91,36 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(body);
     }
 
+    // 요청값 타입/포맷 오류
+    @ExceptionHandler({ MethodArgumentTypeMismatchException.class, HttpMessageNotReadableException.class, DateTimeParseException.class })
+    public ResponseEntity<ApiResponse<?>> handleTypeMismatch(Exception e, HttpServletRequest req) {
+        var body = ApiResponse.fail(
+                ApiError.builder()
+                        .code("INVALID_REQUEST_FORMAT")
+                        .message("요청 값의 형식이 올바르지 않습니다.")
+                        .status(HttpStatus.BAD_REQUEST.value())
+                        .details(Map.of("reason", e.getMessage()))
+                        .build(),
+                req.getRequestURI()
+        );
+        return ResponseEntity.badRequest().body(body);
+    }
+
     // 마지막 보루
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ApiResponse<?>> handleGeneric(Exception e, HttpServletRequest req) {
+    public ResponseEntity<ApiResponse<?>> handleUncaught(Exception ex, HttpServletRequest req) {
+        String errorId = java.util.UUID.randomUUID().toString();
+        StackTraceElement top = ex.getStackTrace().length > 0 ? ex.getStackTrace()[0] : null;
+        log.error("[{}] Unhandled: {} at {}:{}",
+                errorId, ex.toString(),
+                top != null ? top.getClassName() : "n/a",
+                top != null ? top.getLineNumber() : -1,
+                ex);
+
         var body = ApiResponse.fail(
                 ApiError.builder()
                         .code("INTERNAL_ERROR")
-                        .message("서버 내부 오류가 발생했습니다.")
+                        .message("서버 내부 오류가 발생했습니다. (" + errorId + ")")
                         .status(HttpStatus.INTERNAL_SERVER_ERROR.value())
                         .build(),
                 req.getRequestURI()

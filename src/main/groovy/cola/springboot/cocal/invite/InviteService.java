@@ -6,17 +6,21 @@ import cola.springboot.cocal.invite.Invite.InviteType;
 import cola.springboot.cocal.invite.DTO.InviteCreateRequest;
 import cola.springboot.cocal.invite.DTO.InviteResolveResponse;
 import cola.springboot.cocal.invite.DTO.InviteResponse;
+import cola.springboot.cocal.notification.NotificationRepository;
+import cola.springboot.cocal.notification.NotificationResponse;
+import cola.springboot.cocal.notification.NotificationService;
 import cola.springboot.cocal.project.Project;
 import cola.springboot.cocal.project.ProjectRepository;
 import cola.springboot.cocal.projectMember.ProjectMember;
 import cola.springboot.cocal.projectMember.ProjectMemberRepository;
 import cola.springboot.cocal.user.User;
 import cola.springboot.cocal.user.UserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.w3c.dom.views.AbstractView;
 
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
@@ -32,11 +36,14 @@ public class InviteService {
     private final InviteRepository inviteRepository;
     private final UserRepository userRepository;
     private final InviteLinkBuilder inviteLinkBuilder;
+    private final NotificationService notificationService;
 
     // 초대 만료일 기본값 = 7일
     private static final int DEFAULT_EXPIRE_DAYS = 7;
     private static final SecureRandom RNG = new SecureRandom();
     private static final HexFormat HEX = HexFormat.of();
+    private final NotificationRepository notificationRepository;
+    private static final Logger log = LoggerFactory.getLogger(InviteService.class);
 
     // 토큰 생성기
     private String newToken() {
@@ -73,7 +80,7 @@ public class InviteService {
         }
 
         // 초대할 사람
-        String email = req.getEmail().toLowerCase().trim();
+        String email = req.getEmail() == null ? null : req.getEmail().toLowerCase();
 
         // 초대한 사람
         User inviter = userRepository.findById(inviterUserId)
@@ -96,6 +103,7 @@ public class InviteService {
                         "USER_NOT_FOUND",
                         "사용자를 찾을 수 없습니다."
                 )));
+
         boolean alreadyMember = projectMemberRepository.existsByProjectIdAndUserIdAndStatus(projectId, targetUser.get().getId(), ProjectMember.MemberStatus.ACTIVE);
         if (alreadyMember) {
             throw new BusinessException(HttpStatus.CONFLICT, "ALREADY_MEMBER", "이미 해당 프로젝트의 멤버입니다.");
@@ -114,8 +122,8 @@ public class InviteService {
 
             switch (targetInv.getStatus()) {
                 case PENDING -> {
-                    // 만료되지 않았으면 기존 초대 재사용
-                    if (targetInv.getExpiresAt() == null || targetInv.getExpiresAt().isAfter(LocalDateTime.now())) {
+                    //  만료되지 않았으면 기존 초대 재사용
+                    if (targetInv.getExpiresAt() ==null || targetInv.getExpiresAt().isAfter(LocalDateTime.now())) {
                         return InviteResponse.of(targetInv,null);
                     }
                     // 만료된 요청은 EXPIRED 설정
@@ -128,8 +136,8 @@ public class InviteService {
                     return InviteResponse.of(saved,null);
                 }
                 case CANCEL, EXPIRED, DECLINED -> {
-                    Invite saved = saveNewInvite(project, type, email, inviter, req.getExpireDays());
-                    return InviteResponse.of(saved,null);
+                    // 기존 알림 삭제(읽지 않았다는 가정하에)
+                    notificationRepository.deleteByUserIdAndProjectIdAndType(targetUser.get().getId(), targetInv.getProject().getId(), "INVITE");
                 }
                 case ACCEPTED -> throw new BusinessException(
                         HttpStatus.CONFLICT,
@@ -143,8 +151,27 @@ public class InviteService {
                 );
             }
         }
-        // 기존 초대가 없는 경우 새 초대 생성
+        // 기존 초대가 없는 경우 새 초대 생성(또는 CANCEL, EXPIRED, DECLINED일 경우)
         Invite saved = saveNewInvite(project, type, email, inviter, req.getExpireDays());
+        // 알림 보내기: 초대받는 사람에게만
+        try {
+            if (type == Invite.InviteType.EMAIL) {
+                NotificationResponse notification = notificationService.sendNotification(
+                        targetUser.get().getId(),
+                        "INVITE",
+                        saved.getId(),
+                        "팀 초대 알림",
+                        inviter.getName() + "님이 '" + project.getName() + "' 프로젝트에 초대했습니다.",
+                        saved.getProject(),
+                        saved.getProject().getName()
+                );
+
+                System.out.println("Notification ID after flush: " + notification.getId());
+            }
+        } catch (RuntimeException e) {
+            log.error("알림 발송 실패: {}", e.getMessage());
+        }
+
         return InviteResponse.of(saved,null);
     }
     private Invite saveNewInvite(Project project, InviteType type, String email, User inviter, Integer expireDays) {
@@ -159,12 +186,12 @@ public class InviteService {
                 .updatedAt(LocalDateTime.now())
                 .createdAt(LocalDateTime.now())
                 .build();
-        return inviteRepository.save(newInv);
+        return inviteRepository.saveAndFlush(newInv);
     }
 
     // 활성 링크 있는지 확인
     @Transactional
-    public InviteResponse getOrCreateOpenLinkInvite(Long inviterUserId, Long projectId, Integer expireDays) {
+    public InviteResponse getOrCreateOpenLinkInvite(Long inviterUserId, Long projectId) {
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new BusinessException(
                         HttpStatus.NOT_FOUND, "PROJECT_NOT_FOUND", "존재하지 않는 프로젝트입니다."
@@ -187,7 +214,7 @@ public class InviteService {
         }
 
         // 없으면 생성 (아래 트랜잭션 열고 저장 필요)
-        return createOpenLinkInvite(inviterUserId, project, expireDays);
+        return createOpenLinkInvite(inviterUserId, project, 7);
     }
 
     // 공유 링크 생성
@@ -208,7 +235,7 @@ public class InviteService {
 
     // 초대함에서 초대 수락
     @Transactional
-    public void acceptInvite(Long inviteId, Long userId) {
+    public Long acceptInvite(Long inviteId, Long userId) {
         Invite invite = inviteRepository.findById(inviteId)
                 .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "INVITE_NOT_FOUND", "초대를 찾을 수 없습니다."));
 
@@ -236,11 +263,14 @@ public class InviteService {
                 .build();
 
         projectMemberRepository.save(member);
+
+        // 알림id 반환
+        return notificationRepository.findIdByUserIdAndReferenceIdAndType(userId, inviteId,"INVITE");
     }
 
     // 초대함에서 초대 거절
     @Transactional
-    public void declineInvite(Long inviteId, Long userId) {
+    public Long declineInvite(Long inviteId, Long userId) {
         Invite invite = inviteRepository.findById(inviteId)
                 .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "INVITE_NOT_FOUND", "초대를 찾을 수 없습니다."));
 
@@ -256,6 +286,9 @@ public class InviteService {
 
         // 초대 상태 업데이트
         invite.setStatus(InviteStatus.DECLINED);
+
+        // 알림id 반환
+        return notificationRepository.findIdByUserIdAndReferenceIdAndType(userId, inviteId,"INVITE");
     }
 
     // 초대 링크 확인 후 정보 조회

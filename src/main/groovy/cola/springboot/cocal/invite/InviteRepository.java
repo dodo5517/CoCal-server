@@ -12,6 +12,7 @@ import java.util.Optional;
 
 public interface InviteRepository extends JpaRepository<Invite, Long> {
     Optional<Invite> findTopByProject_IdAndEmailIgnoreCaseOrderByCreatedAtDesc(Long projectId, String email);
+    Optional<Invite> findByProject_idAndId(Long projectId, Long id);
 
     // DECLINED 상태의 초대 개수 조회
     @Query(

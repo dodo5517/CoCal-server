@@ -64,6 +64,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/users").permitAll()
                         // OAuth2 로그인 진입/콜백 URL (소셜 로그인 필수 공개)
                         .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll()
+                        // SSE는 인증 없이 접근 가능 
+                        .requestMatchers("/api/notifications/subscribe").permitAll()
                         // swagger
                         .requestMatchers(
                                 "/swagger-ui.html",

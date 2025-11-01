@@ -9,6 +9,7 @@ import cola.springboot.cocal.eventLink.EventLinkRepository;
 import cola.springboot.cocal.eventLink.LinkItem;
 import cola.springboot.cocal.eventMember.EventMember;
 import cola.springboot.cocal.eventMember.EventMemberRepository;
+import cola.springboot.cocal.notification.ReminderService;
 import cola.springboot.cocal.project.Project;
 import cola.springboot.cocal.project.ProjectRepository;
 import cola.springboot.cocal.projectMember.ProjectMember;
@@ -34,6 +35,7 @@ public class EventService {
     private final UserRepository userRepository;
     private final ProjectMemberRepository projectMemberRepository;
     private final EventMemberRepository eventMemberRepository;
+    private final ReminderService eventReminderService;
 
     // event(일정) 생성
     @Transactional
@@ -303,6 +305,11 @@ public class EventService {
                         .build())
                 .toList();
 
+        // 시간 변경 여부 확인 (startAt, offsetMinutes)
+        boolean isTimeChanged = !event.getStartAt().equals(startAt)
+                || event.getOffsetMinutes() != request.getOffsetMinutes();
+
+        // 이벤트 정보 업데이트
         event.setTitle(request.getTitle());
         event.setDescription(request.getDescription());
         event.setStartAt(startAt);
@@ -317,9 +324,45 @@ public class EventService {
         // DB 반영
         event = eventRepository.save(event);
 
+        // 시간 변경 시 알림 재등록
+        if (isTimeChanged) {
+            eventReminderService.handleEventTimeChange(event);
+        }
+
+        // 기존 이벤트 멤버 삭제
+        eventMemberRepository.deleteByEventId(event.getId());
+
+        // 이벤트 멤버 세트 구성
+        Set<Long> userIds = new HashSet<>();
+        if (request.getMemberUserIds() != null) {
+            request.getMemberUserIds().stream()
+                    .filter(Objects::nonNull)
+                    .forEach(userIds::add);
+        }
+        userIds.add(userId); // 본인은 자동 포함
+
+        // 프로젝트 멤버 검증
+        Set<Long> projectMemberIds = projectMemberRepository
+                .findMemberUserIdsInProject(projectId, userIds);
+        if (projectMemberIds.size() != userIds.size()) {
+            // 프로젝트 멤버가 아닌 userId들 식별
+            Set<Long> notMembers = new HashSet<>(userIds);
+            // 요청 들어온 Ids에서 검증된 프로젝트 멤버 Ids 제거하여 멤버 아닌 사용자 식별
+            notMembers.removeAll(projectMemberIds);
+            throw new BusinessException(HttpStatus.BAD_REQUEST, "NOT_PROJECT_MEMBER",
+                    "프로젝트 멤버가 아닌 사용자 포함: " + notMembers);
+        }
+
+        // EventMember 일괄 저장
+        Event finalEvent = event;
+        List<EventMember> savedMembers = eventMemberRepository.saveAll(
+                projectMemberIds.stream()
+                        .map(uid -> EventMember.of(finalEvent, userRepository.getReferenceById(uid)))
+                        .toList()
+        );
+
         // 이벤트 참가자 조회
         List<User> eventMembers = eventMemberRepository.findUsersByEventId(id);
-
         return EventResponse.fromEntity(event, eventMembers, linkItems);
     }
 

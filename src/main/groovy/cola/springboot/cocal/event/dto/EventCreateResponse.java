@@ -21,7 +21,6 @@ public class EventCreateResponse {
     private boolean allDay;
     private String visibility;
     private String location;
-    private String url;
     private Long creatorId;
     private LocalDateTime createdAt;
     private int offsetMinutes;
