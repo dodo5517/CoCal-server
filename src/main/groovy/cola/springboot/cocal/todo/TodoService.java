@@ -25,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 
@@ -151,21 +152,37 @@ public class TodoService {
         userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", "사용자를 찾을 수 없습니다."));
 
-        // 날짜 경계 계산: [start, end)
-        LocalDateTime start = date.atStartOfDay();               // 00:00:00
-        LocalDateTime end   = date.plusDays(1).atStartOfDay();   // 다음날 00:00:00
+        // [FIX] KST 시간대 기준으로 UTC 경계 계산
+        ZoneId kstZone = ZoneId.of("Asia/Seoul");
 
+        // KST 기준 시작 (예: 2025-11-01 00:00:00 KST)
+        LocalDateTime kstStart = date.atStartOfDay();
+        // KST 기준 종료 (예: 2025-11-02 00:00:00 KST)
+        LocalDateTime kstEndExclusive = kstStart.plusDays(1);
 
-        // 조회
+        // DB 쿼리를 위한 UTC 시간으로 변환 (DB의 date 컬럼이 UTC 기준 LocalDateTime이라고 가정)
+        // (예: 2025-10-31T15:00:00 UTC)
+        LocalDateTime utcStart = kstStart.atZone(kstZone)
+                .withZoneSameInstant(ZoneId.of("UTC"))
+                .toLocalDateTime();
+        // (예: 2025-11-01T15:00:00 UTC)
+        LocalDateTime utcEnd = kstEndExclusive.atZone(kstZone)
+                .withZoneSameInstant(ZoneId.of("UTC"))
+                .toLocalDateTime();
+
+        // [기존 코드 삭제]
+        // LocalDateTime start = date.atStartOfDay();               // 00:00:00
+        // LocalDateTime end   = date.plusDays(1).atStartOfDay();   // 다음날 00:00:00
+
+        // 조회 (수정된 utcStart, utcEnd 사용)
         List<PrivateTodo> todos = privateTodoRepository
                 .findAllByProjectIdAndOwnerIdAndDateGreaterThanEqualAndDateLessThan(
-                        projectId, userId, start, end
+                        projectId, userId, utcStart, utcEnd // <-- 수정된 변수 사용
                 );
 
         List<TodoItemResponse> items = todos.stream()
                 .map(TodoItemResponse::fromEntity)
                 .toList();
-
 
         return TodoListResponse.builder()
                 .projectId(projectId)
