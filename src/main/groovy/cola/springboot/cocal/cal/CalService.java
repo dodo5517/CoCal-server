@@ -26,11 +26,15 @@ import cola.springboot.cocal.user.User;
 import cola.springboot.cocal.user.UserRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -49,6 +53,7 @@ public class CalService {
     private final CalendarRepository calendarRepository;
     private final UserRepository userRepository;
     private final InviteRepository inviteRepository;
+    private static final Logger log = LoggerFactory.getLogger(CalService.class);
 
     // event, memo 조회(calendar 화면에서)
     @Transactional(readOnly = true)
@@ -156,6 +161,7 @@ public class CalService {
     }
 
 
+    // 개인/이벤트 todo가 있는 날짜 조회
     public ActiveDaysResponse getActiveDays(Long userId, Long projectId, int year, int month) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new BusinessException(
@@ -175,9 +181,6 @@ public class CalService {
         boolean isOwner = project.getOwner().getId().equals(userId);
         boolean isAcceptedInvitee = inviteRepository.existsAcceptedInvite(projectId, user.getEmail());
 
-        LocalDate monthStart = LocalDate.of(year, month, 1);
-        LocalDate monthEnd = monthStart.plusMonths(1).minusDays(1);
-
         if (!isOwner && !isAcceptedInvitee) {
             throw new BusinessException(
                     HttpStatus.FORBIDDEN,
@@ -186,7 +189,34 @@ public class CalService {
             );
         }
 
-        List<Integer> days = calendarRepository.findActiveDaysByProject(projectId, monthStart, monthEnd, year, month);
+        ZoneId kst = ZoneId.of("Asia/Seoul");
+        ZoneId utc = ZoneId.of("UTC");
+
+        // KST 기준 월의 시작
+        LocalDateTime kstStart = LocalDate.of(year, month, 1).atStartOfDay();
+
+        // KST 기준 월의 끝: 다음달 1일 00:00
+        LocalDateTime kstEnd = LocalDate.of(year, month, 1)
+                .plusMonths(1)
+                .atStartOfDay();
+
+        // UTC 변환
+        LocalDateTime utcStart = kstStart.atZone(kst).withZoneSameInstant(utc).toLocalDateTime();
+
+        //  monthEnd에서 1ns라도 더 줄이기 (exclusive 비교를 보장)
+        LocalDateTime utcEnd = kstEnd.atZone(kst)
+                .withZoneSameInstant(utc)
+                .toLocalDateTime()
+                .minusNanos(1);
+
+        List<Integer> days = calendarRepository.findActiveDaysByProject(
+                projectId,
+                utcStart,
+                utcEnd,
+                year,
+                month
+        );
+
         return new ActiveDaysResponse(days);
     }
 }
