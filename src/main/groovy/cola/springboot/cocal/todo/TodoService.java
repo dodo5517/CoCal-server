@@ -272,17 +272,12 @@ public class TodoService {
     // 해당 이벤트에 종속된 이벤트 TODO 조회-event
     @Transactional(readOnly = true)
     public TodoListResponse getEventTodoAll(Long projectId, Long userId, Long eventId) {
-        // 프로젝트 확인
-        projectRepository.findById(projectId)
-                .orElseThrow(() -> new BusinessException(
-                        HttpStatus.NOT_FOUND, "PROJECT_NOT_FOUND", "프로젝트를 찾을 수 없습니다."
-                ));
+        // 이벤트 + todos 함께 조회
+        Event event = eventRepository.findEventWithTodos(eventId)
+                .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "EVENT_NOT_FOUND", "이벤트를 찾을 수 없습니다."));
 
-        // 해당 이벤트가 속한 projectId 조회
-        Optional<Event> targetEvent = eventRepository.findById(eventId);
-        Long targetProjectId = targetEvent.get().getProject().getId();
-
-        if (!targetProjectId.equals(projectId)) {
+        // 이벤트가 해당 프로젝트 소속인지 검증
+        if (!event.getProject().getId().equals(projectId)) {
             throw new BusinessException(HttpStatus.FORBIDDEN, "FORBIDDEN", "이 이벤트는 해당 프로젝트에 속하지 않습니다.");
         }
 
@@ -292,16 +287,10 @@ public class TodoService {
             throw new BusinessException(HttpStatus.FORBIDDEN, "FORBIDDEN", "프로젝트 멤버만 조회할 수 있습니다.");
         }
 
-        // 사용자 확인
-        userRepository.findById(userId)
-                .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "USER_NOT_FOUND", "사용자를 찾을 수 없습니다."));
-
-        // 해당 이벤트의 투두 조회
-        List<EventTodo> todos = eventTodoRepository.findByEventId(eventId);
-
-        List<TodoItemResponse> items = todos.stream()
+        // 투두 변환
+        List<TodoItemResponse> items = event.getTodos().stream()
                 .map(TodoItemResponse::fromEntity)
-                .toList();;
+                .toList();
 
         return TodoListResponse.builder()
                 .projectId(projectId)

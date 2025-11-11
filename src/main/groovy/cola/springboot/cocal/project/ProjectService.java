@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
 
 @Service
@@ -147,7 +148,7 @@ public class ProjectService {
     // 프로젝트 개별 조회
     @Transactional(readOnly = true)
     public ProjectResponseDto getProjectById(Long projectId, Long userId, String email) {
-        Project project = projectRepository.findById(projectId)
+        Project project = projectRepository.findProjectAndMemberById(projectId)
                 .orElseThrow(() -> new BusinessException(
                         HttpStatus.NOT_FOUND,
                         "PROJECT_NOT_FOUND",
@@ -167,14 +168,17 @@ public class ProjectService {
         }
 
         // 멤버인지 확인
-        Boolean exist = projectMemberRepository.existsByProjectIdAndUserIdAndStatus(projectId, userId, ProjectMember.MemberStatus.ACTIVE);
-        if (!exist) {
+        boolean isMember = project.getMembers().stream()
+                .anyMatch(pm -> pm.getUser().getId().equals(userId)
+                        && pm.getStatus() == ProjectMember.MemberStatus.ACTIVE);
+        if (!isMember) {
             throw new BusinessException(HttpStatus.FORBIDDEN, "NO_MEMBERSHIP", "프로젝트 멤버가 아닙니다.");
         }
 
-        // 팀원 목록
-        List<ProjectMember> members = projectMemberRepository.findActiveMembersWithUser(projectId);
-        List<ProjectMemberInfoDto> memberDtos = members.stream()
+        // 팀원 목록 DTO 변환
+        List<ProjectMemberInfoDto> memberDtos = project.getMembers().stream()
+                .filter(pm -> pm.getStatus() == ProjectMember.MemberStatus.ACTIVE)
+                .sorted(Comparator.comparing(pm -> pm.getUser().getName()))
                 .map(pm -> ProjectMemberInfoDto.builder()
                         .userId(pm.getUser().getId())
                         .name(pm.getUser().getName())

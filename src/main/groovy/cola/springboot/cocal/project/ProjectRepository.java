@@ -2,6 +2,7 @@ package cola.springboot.cocal.project;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -29,6 +30,10 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
             Pageable pageable
     );
 
-
-
+    @EntityGraph(attributePaths = {
+            "members",         // project_members
+            "members.user",    // users
+            "owner"            // 프로젝트 생성자
+    })
+    Optional<Project> findProjectAndMemberById(Long id);
 }

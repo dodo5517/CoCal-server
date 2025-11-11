@@ -1,6 +1,7 @@
 package cola.springboot.cocal.event;
 
 import cola.springboot.cocal.project.Project;
+import cola.springboot.cocal.todo.event_todo.EventTodo;
 import cola.springboot.cocal.user.User;
 import jakarta.persistence.*;
 import lombok.*;
@@ -8,6 +9,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 @Table(name = "events", indexes = {
@@ -68,6 +70,8 @@ public class Event {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    @OneToMany(mappedBy = "event") private List<EventTodo> todos;
 
     @PrePersist
     @PreUpdate

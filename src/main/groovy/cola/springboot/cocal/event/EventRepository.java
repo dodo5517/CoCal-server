@@ -39,4 +39,10 @@ public interface EventRepository extends JpaRepository<Event, Long> {
     """, nativeQuery = true)
     List<Event> findEventsStartingAfterOffset(@Param("now") LocalDateTime now);
 
+    @Query("""
+        SELECT e FROM Event e
+        LEFT JOIN FETCH e.todos t
+        WHERE e.id = :eventId
+    """)
+    Optional<Event> findEventWithTodos(@Param("eventId") Long eventId);
 }

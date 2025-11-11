@@ -1,5 +1,6 @@
 package cola.springboot.cocal.project;
 
+import cola.springboot.cocal.projectMember.ProjectMember;
 import cola.springboot.cocal.user.User;
 import jakarta.persistence.*;
 import lombok.*;
@@ -9,6 +10,8 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Getter
@@ -52,6 +55,9 @@ public class Project {
     // 추가
     @Column(columnDefinition = "TEXT") // 길이 제한 없이 TEXT로 저장
     private String description; // nullable 가능
+
+    @OneToMany(mappedBy = "project", fetch = FetchType.LAZY)
+    private List<ProjectMember> members = new ArrayList<>();
 
     public enum Status {
         IN_PROGRESS,

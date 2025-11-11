@@ -19,4 +19,17 @@ public interface EventMemberRepository extends JpaRepository<EventMember, EventM
         where e.id = :eventId
     """)
     List<User> findUsersByEventId(@Param("eventId") Long eventId);
+
+    /**
+     * 여러 이벤트 ID에 속한 모든 멤버 + 유저를 한 번에 조회
+     * - fetch join으로 User를 한 번에 로딩
+     * - PostgreSQL IN 절 최적화: (event_id = ANY(:eventIds))
+     */
+    @Query("""
+        select em
+        from EventMember em
+        join fetch em.user u
+        where em.event.id in :eventIds
+        """)
+    List<EventMember> findAllByEventIds(@Param("eventIds") List<Long> eventIds);
 }

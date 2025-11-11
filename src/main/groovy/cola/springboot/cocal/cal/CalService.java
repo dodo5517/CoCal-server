@@ -7,13 +7,14 @@ import cola.springboot.cocal.common.exception.BusinessException;
 import cola.springboot.cocal.event.Event;
 import cola.springboot.cocal.event.EventRepository;
 import cola.springboot.cocal.event.dto.EventResponse;
+import cola.springboot.cocal.eventLink.EventLink;
 import cola.springboot.cocal.eventLink.LinkItem;
 import cola.springboot.cocal.eventLink.EventLinkRepository;
+import cola.springboot.cocal.eventMember.EventMember;
 import cola.springboot.cocal.eventMember.EventMemberRepository;
 import cola.springboot.cocal.invite.InviteRepository;
 import cola.springboot.cocal.memo.DTO.MemoMapper;
 import cola.springboot.cocal.memo.DTO.MemoResponse;
-import cola.springboot.cocal.memo.Memo;
 import cola.springboot.cocal.memo.MemoRepository;
 import cola.springboot.cocal.project.Project;
 import cola.springboot.cocal.project.ProjectRepository;
@@ -24,7 +25,6 @@ import cola.springboot.cocal.todo.event_todo.EventTodoRepository;
 import cola.springboot.cocal.todo.private_todo.PrivateTodoRepository;
 import cola.springboot.cocal.user.User;
 import cola.springboot.cocal.user.UserRepository;
-import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,6 +37,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -60,16 +61,9 @@ public class CalService {
     public CalItemResponse getCalendarItems(Long userId, Long projectId) {
         //  프로젝트의 시작일 가져오기
         Project project = projectRepository.findById(projectId)
-                .orElseThrow(() -> new EntityNotFoundException("Project not found"));
-        LocalDate startDate = project.getStartDate(); // Project 엔티티에 startDate 필드
-
-        int year = startDate.getYear();
-        int month = startDate.getMonthValue();
-        int day = startDate.getDayOfMonth();
-
-        // 프로젝트 존재 확인
-        projectRepository.findById(projectId)
                 .orElseThrow(() -> new BusinessException(HttpStatus.NOT_FOUND, "PROJECT_NOT_FOUND", "프로젝트를 찾을 수 없습니다."));
+
+        LocalDate startDate = project.getStartDate(); // Project 엔티티에 startDate 필드
 
         // 권한 체크
         boolean isMember = projectMemberRepository.existsByProjectIdAndUserIdAndStatus(projectId, userId, ProjectMember.MemberStatus.ACTIVE);
@@ -79,29 +73,56 @@ public class CalService {
 
         // 이벤트 조회
         List<Event> events = eventRepository.findAllByProjectId(projectId);
+        if (events.isEmpty()) {
+            return CalItemResponse.builder()
+                    .year(startDate.getYear())
+                    .month(startDate.getMonthValue())
+                    .day(startDate.getDayOfMonth())
+                    .events(List.of())
+                    .memos(List.of())
+                    .build();
+        }
+
+        // 이벤트 ID 목록 추출
+        List<Long> eventIds = events.stream().map(Event::getId).toList();
+
+        // 멤버 + 링크 한 번에 조회
+        List<EventMember> members = eventMemberRepository.findAllByEventIds(eventIds);
+        List<EventLink> links = eventLinkRepository.findAllByEventIds(eventIds);
+
+        // 6eventId 기준으로 그룹핑 (메모리상 매핑)
+        Map<Long, List<User>> memberMap = members.stream()
+                .collect(Collectors.groupingBy(
+                        em -> em.getEvent().getId(),
+                        Collectors.mapping(EventMember::getUser, Collectors.toList())
+                ));
+
+        Map<Long, List<LinkItem>> linkMap = links.stream()
+                .collect(Collectors.groupingBy(
+                        el -> el.getEvent().getId(),
+                        Collectors.mapping(LinkItem::fromEntity, Collectors.toList())
+                ));
+
+        // EventResponse 변환
         List<EventResponse> eventResponses = events.stream()
-                .map(event -> {
-                    List<User> members = eventMemberRepository.findUsersByEventId(event.getId());
-                    // event에 연관된 url 조회 후 응답형식에 맞게 변환
-                    List<LinkItem> urlDtos = eventLinkRepository
-                            .findByEventIdOrderByOrderNoAsc(event.getId())
-                            .stream()
-                            .map(LinkItem::fromEntity)
-                            .toList();
-                    return EventResponse.fromEntity(event, members, urlDtos);
-                })
+                .map(event -> EventResponse.fromEntity(
+                        event,
+                        memberMap.getOrDefault(event.getId(), List.of()),
+                        linkMap.getOrDefault(event.getId(), List.of())
+                ))
                 .toList();
 
         // 메모 조회
-        List<Memo> memos = memoRepository.findAllByProjectIdWithAuthor(projectId);
-        List<MemoResponse> memoResponses = memos.stream()
+        List<MemoResponse> memoResponses = memoRepository.findAllByProjectIdWithAuthor(projectId)
+                .stream()
                 .map(memo -> MemoMapper.toResponse(memo, memo.getAuthor()))
                 .toList();
 
+        // 최종 응답 조립
         return CalItemResponse.builder()
-                .year(year)
-                .month(month)
-                .day(day)
+                .year(startDate.getYear())
+                .month(startDate.getMonthValue())
+                .day(startDate.getDayOfMonth())
                 .events(eventResponses)
                 .memos(memoResponses)
                 .build();
