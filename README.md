@@ -53,14 +53,9 @@ CoCal은 팀 프로젝트를 진행하는 사람들을 위한 협업 캘린더 �
 
 ---
 
-## 배포
+## 데모
 
-| 구분 | 주소 |
-|------|------|
-| Frontend (Vercel) | https://cocal-front.vercel.app |
-| Backend API (Render) | https://cocal-server.onrender.com |
-
-> Render 무료 플랜 특성상 서버가 수면 상태일 수 있습니다. 최초 요청 시 20~30초 대기 후 활성화됩니다.
+[데모 바로가기](https://co-cal.vercel.app/)
 
 ---
 
