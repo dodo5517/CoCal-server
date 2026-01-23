@@ -37,7 +37,6 @@ import static cola.springboot.cocal.common.exception.ErrorMappers.toApiError;
 public class SecurityConfig {
 
     private final JwtAuthFilter jwtFilter; // 필드 주입
-    private final JwtTokenProvider jwt;
     private final CustomOAuth2UserService customOAuth2UserService; // 필드 추가
     private final OAuth2SuccessHandler oAuth2SuccessHandler;
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -47,6 +46,8 @@ public class SecurityConfig {
 
         http
                 .csrf(csrf -> csrf.disable())
+                // 명시적으로 CorsConfigurationSource를 등록
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .cors(Customizer.withDefaults())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .formLogin(form -> form.disable()) // 기본 로그인폼 비활성화
@@ -55,7 +56,7 @@ public class SecurityConfig {
                         // 모든 OPTIONS 허용 (preflight 통과)
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         // 링크 초대 요청 정보 조회
-                        .requestMatchers(org.springframework.http.HttpMethod.GET, "/api/invites/resolve").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/invites/resolve").permitAll()
                         // 인증/토큰 관련(ex.로그인, 토큰 재발급, 로그아웃)
                         .requestMatchers("/api/auth/**").permitAll()
                         // 헬스체크/버전
@@ -64,7 +65,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/users").permitAll()
                         // OAuth2 로그인 진입/콜백 URL (소셜 로그인 필수 공개)
                         .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll()
-                        // SSE는 인증 없이 접근 가능 
+                        // SSE는 인증 없이 접근 가능
                         .requestMatchers("/api/notifications/subscribe").permitAll()
                         // swagger
                         .requestMatchers(
@@ -92,8 +93,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of("https://cocal-front.vercel.app",
-                "http://localhost:3000","http://localhost:3001")); // 허용할 프론트 주소
+        config.setAllowedOriginPatterns(List.of("https://co-cal.vercel.app")); // 허용할 프론트 주소
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*")); // Authorization, Content-Type 등
         config.setAllowCredentials(true);       // 쿠키(RefreshToken) 전송 허용

@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.messaging.handler.annotation.support.MethodArgumentTypeMismatchException;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.MissingServletRequestParameterException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.async.AsyncRequestTimeoutException;
 
 import java.time.format.DateTimeParseException;
 import java.util.Map;
@@ -28,6 +30,32 @@ import java.util.Map;
 public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
+
+    @ExceptionHandler(AsyncRequestTimeoutException.class)
+    public ResponseEntity<?> handleAsyncTimeout(AsyncRequestTimeoutException ex, HttpServletRequest req) {
+        // SSE/스트리밍 응답은 이미 text/event-stream 으로 커밋된 경우가 많아
+        // JSON(ApiResponse) 쓰면 "No converter"로 2차 예외가 남.
+        if (isSse(req)) {
+            return ResponseEntity.noContent().build(); // 204
+        }
+
+        var body = ApiResponse.fail(
+                ApiError.builder()
+                        .code("REQUEST_TIMEOUT")
+                        .message("요청 처리 시간이 초과되었습니다.")
+                        .status(HttpStatus.SERVICE_UNAVAILABLE.value())
+                        .build(),
+                req.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).body(body);
+    }
+
+    private boolean isSse(HttpServletRequest req) {
+        String accept = req.getHeader("Accept");
+        String ct = req.getContentType();
+        return (accept != null && accept.contains(MediaType.TEXT_EVENT_STREAM_VALUE))
+                || (ct != null && ct.contains(MediaType.TEXT_EVENT_STREAM_VALUE));
+    }
 
     @ExceptionHandler(BusinessException.class)
     public ResponseEntity<ApiResponse<?>> handleBusiness(BusinessException e, HttpServletRequest req) {
